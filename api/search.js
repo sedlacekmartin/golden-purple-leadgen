@@ -12,7 +12,7 @@ async function searchCompanies(location, category, limit) {
     headers: {
       'Content-Type': 'application/json',
       'X-Goog-Api-Key': PLACES_KEY,
-      'X-Goog-FieldMask': 'places.displayName,places.rating,places.websiteUri,places.nationalPhoneNumber',
+      'X-Goog-FieldMask': 'places.displayName,places.rating,places.userRatingCount,places.websiteUri,places.nationalPhoneNumber',
     },
     body: JSON.stringify({ textQuery: `${category} ${location}`, languageCode: 'cs', pageSize: limit }),
   });
@@ -27,6 +27,7 @@ async function searchCompanies(location, category, limit) {
     website: p.websiteUri || null,
     phone: p.nationalPhoneNumber || null,
     google_rating: p.rating || null,
+    review_count: p.userRatingCount || 0,
     has_website: !!p.websiteUri,
     website_age_years: null,
   }));
@@ -35,13 +36,12 @@ async function searchCompanies(location, category, limit) {
 function scoreLead(company) {
   let score = 0;
   const reasons = [];
+
   if (!company.has_website) {
     score += 40;
     reasons.push('Nemá web');
-  } else if (company.website_age_years > 5) {
-    score += 25;
-    reasons.push(`Web starý ${company.website_age_years} let`);
   }
+
   const rating = company.google_rating || 0;
   if (rating < 3.5) {
     score += 20;
@@ -50,6 +50,16 @@ function scoreLead(company) {
     score += 5;
     reasons.push('Dobré hodnocení = reagující firma');
   }
+
+  const reviews = company.review_count || 0;
+  if (reviews < 20) {
+    score += 25;
+    reasons.push('Málo recenzí — slabá online přítomnost');
+  } else if (reviews < 50) {
+    score += 10;
+    reasons.push('Podprůměrný počet recenzí');
+  }
+
   return { ...company, score, reasons };
 }
 
@@ -78,7 +88,7 @@ export default async function handler(req, res) {
 
   try {
     const companies = await searchCompanies(location, category, parseInt(limit));
-    const scored = companies.map(scoreLead).filter(c => c.score > 30);
+    const scored = companies.map(scoreLead).filter(c => c.score > 0);
 
     const leads = [];
     for (const company of scored) {
