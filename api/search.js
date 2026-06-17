@@ -100,6 +100,14 @@ export default async function handler(req, res) {
 
     const leads = [];
     for (const company of scored) {
+      const { data: existing } = await supabase
+        .from('leads')
+        .select('id')
+        .eq('company', company.name)
+        .neq('status', 'skipped')
+        .maybeSingle();
+      if (existing) { console.log('Duplicate skip:', company.name); continue; }
+
       const draft = await draftEmail(company);
       const { data, error } = await supabase
         .from('leads')
