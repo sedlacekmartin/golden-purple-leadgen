@@ -362,9 +362,17 @@ function toast(msg, isError = false) {
 // ── Categories ───────────────────────────────────────────────────────────────
 
 const ALL_CATS = [
+  // Lokální služby
   'restaurace','kavárna','pizzerie','autoservis','kadeřnictví',
   'kosmetický salon','zubař','účetní','pekárna','řeznictví',
   'květinářství','realitní kancelář','fitness','právník',
+  // B2B — střední firmy
+  'stavební firma','elektroinstalace','instalatérství',
+  'truhlářství','klempířství','strojírenství','svářečství',
+  'dopravní firma','logistika a skladování','zemědělská firma',
+  'průmyslové čištění','bezpečnostní agentura','tiskárna',
+  'CNC obrábění','výroba plastů','projektová kancelář',
+  'architektonická kancelář','poradenská firma','servis strojů',
 ];
 let selectedCats = new Set(['restaurace']);
 
