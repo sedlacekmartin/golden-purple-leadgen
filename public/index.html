@@ -265,14 +265,6 @@ async function revert(id) {
   await loadLeads();
 }
 
-function openMockup(id, btn) {
-  const orig = btn.textContent;
-  btn.textContent = 'Generuji…';
-  btn.disabled = true;
-  const w = window.open(`/api/mockup?id=${id}`, '_blank');
-  setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 3000);
-  if (!w) toast('Povol vyskakovací okna v prohlížeči', true);
-}
 
 function copyDraft(id) {
   const lead = leads.approved.find(l => l.id === id);
@@ -491,10 +483,10 @@ function render() {
             Vrátit
           </button>
         `}
-        <button onclick="openMockup('${lead.id}', this)"
-          class="border border-purple-200 hover:bg-purple-50 text-purple-600 px-3 py-2 rounded-xl text-sm font-medium transition-colors whitespace-nowrap">
+        <a href="/api/mockup?id=${lead.id}" target="_blank" rel="noopener"
+          class="border border-purple-200 hover:bg-purple-50 text-purple-600 px-3 py-2 rounded-xl text-sm font-medium transition-colors whitespace-nowrap inline-flex items-center">
           🎨 Návrh webu
-        </button>
+        </a>
       </div>
     </div>`;
   }).join('');
