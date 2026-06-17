@@ -127,8 +127,37 @@
     </button>
   </div>
 
+  <!-- Filters -->
+  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
+    <div class="flex flex-wrap items-center gap-3">
+      <div class="flex items-center gap-2">
+        <label class="text-xs text-gray-400 font-medium whitespace-nowrap">Min. skóre</label>
+        <input id="f-score" type="number" value="0" min="0" max="100" oninput="resetPage();render()"
+          class="w-16 bg-slate-50 rounded-lg px-2 py-1.5 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-purple-400 text-center">
+      </div>
+      <div class="h-4 w-px bg-gray-200 hidden sm:block"></div>
+      <div class="flex flex-wrap gap-1.5" id="f-reasons"></div>
+      <div class="h-4 w-px bg-gray-200 hidden sm:block"></div>
+      <label class="flex items-center gap-1.5 cursor-pointer select-none">
+        <input id="f-draft" type="checkbox" onchange="resetPage();render()" class="accent-purple-600 w-3.5 h-3.5">
+        <span class="text-xs text-gray-500">Jen s draftem</span>
+      </label>
+      <button onclick="clearFilters()" class="ml-auto text-xs text-gray-400 hover:text-gray-600 transition-colors">Zrušit filtry</button>
+    </div>
+    <div id="f-cats" class="flex flex-wrap gap-1.5"></div>
+  </div>
+
   <!-- Cards -->
-  <div id="cards" class="space-y-3 pb-10"></div>
+  <div id="cards" class="space-y-3"></div>
+
+  <!-- Pagination -->
+  <div id="pagination" class="hidden flex items-center justify-between pb-10">
+    <button id="pg-prev" onclick="changePage(-1)"
+      class="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 disabled:opacity-30 transition-colors">← Předchozí</button>
+    <span id="pg-info" class="text-xs text-gray-400"></span>
+    <button id="pg-next" onclick="changePage(1)"
+      class="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 disabled:opacity-30 transition-colors">Další →</button>
+  </div>
 
 </main>
 
@@ -152,6 +181,7 @@ async function loadLeads() {
     leads.pending  = p.leads || [];
     leads.approved = a.leads || [];
     updateCounts();
+    renderFilterUI();
     render();
   } catch { toast('Chyba při načítání', true); }
 }
@@ -249,18 +279,75 @@ function toggleEdit(id) {
 
 function switchTab(t) {
   activeTab = t;
+  currentPage = 1;
   ['pending', 'approved'].forEach(id => {
     const btn = document.getElementById(`tab-${id}`);
     btn.className = id === t
       ? 'px-4 py-1.5 rounded-lg text-sm font-medium transition-all bg-white text-purple-700 shadow-sm'
       : 'px-4 py-1.5 rounded-lg text-sm font-medium transition-all text-gray-500 hover:text-gray-700';
   });
+  renderFilterUI();
   render();
 }
 
 function updateCounts() {
   document.getElementById('cnt-pending').textContent  = leads.pending.length  || '';
   document.getElementById('cnt-approved').textContent = leads.approved.length || '';
+}
+
+// ── Filters ───────────────────────────────────────────────────────────────────
+
+const REASON_SHORT = {
+  'Nemá web': 'Nemá web',
+  'Málo recenzí — slabá online přítomnost': 'Málo recenzí',
+  'Podprůměrný počet recenzí': 'Průměr. recenze',
+  'Nízké Google hodnocení': 'Nízké hodnocení',
+  'Dobré hodnocení = reagující firma': 'Dobré hodnocení',
+};
+
+let activeReasons = new Set();
+let activeCatFilter = new Set();
+
+function getFiltered() {
+  const minScore = parseInt(document.getElementById('f-score')?.value) || 0;
+  const onlyDraft = document.getElementById('f-draft')?.checked;
+  return [...leads[activeTab]]
+    .filter(l => l.score >= minScore)
+    .filter(l => !activeReasons.size || l.reasons?.some(r => activeReasons.has(r)))
+    .filter(l => !activeCatFilter.size || activeCatFilter.has(l.category))
+    .filter(l => !onlyDraft || !!l.email_draft)
+    .sort((a, b) => b.score - a.score);
+}
+
+function renderFilterUI() {
+  const allReasons = [...new Set(leads[activeTab].flatMap(l => l.reasons || []))];
+  document.getElementById('f-reasons').innerHTML = allReasons.map(r => {
+    const active = activeReasons.has(r);
+    return `<button onclick="toggleReason('${r.replace(/'/g,"&#39;")}')"
+      class="text-xs px-2.5 py-1 rounded-full border transition-all font-medium
+        ${active ? 'bg-purple-700 text-white border-purple-700' : 'bg-white text-gray-500 border-gray-200 hover:border-purple-300 hover:text-purple-600'}">
+      ${esc(REASON_SHORT[r] || r)}
+    </button>`;
+  }).join('');
+
+  const allCatsInLeads = [...new Set(leads[activeTab].map(l => l.category).filter(Boolean))];
+  document.getElementById('f-cats').innerHTML = allCatsInLeads.length < 2 ? '' : allCatsInLeads.map(c => {
+    const active = activeCatFilter.has(c);
+    return `<button onclick="toggleCatFilter('${c.replace(/'/g,"&#39;")}')"
+      class="text-xs px-2.5 py-1 rounded-full border transition-all
+        ${active ? 'bg-gray-700 text-white border-gray-700' : 'bg-white text-gray-400 border-gray-200 hover:border-gray-400 hover:text-gray-600'}">
+      ${esc(c)}
+    </button>`;
+  }).join('');
+}
+
+function toggleReason(r) { activeReasons.has(r) ? activeReasons.delete(r) : activeReasons.add(r); resetPage(); render(); renderFilterUI(); }
+function toggleCatFilter(c) { activeCatFilter.has(c) ? activeCatFilter.delete(c) : activeCatFilter.add(c); resetPage(); render(); }
+function clearFilters() {
+  activeReasons.clear(); activeCatFilter.clear();
+  document.getElementById('f-score').value = 0;
+  document.getElementById('f-draft').checked = false;
+  resetPage(); render(); renderFilterUI();
 }
 
 function scoreBadge(score) {
@@ -273,11 +360,43 @@ function esc(str) {
   return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+// ── Pagination ────────────────────────────────────────────────────────────────
+
+const PAGE_SIZE = 10;
+let currentPage = 1;
+
+function resetPage() { currentPage = 1; }
+
+function changePage(dir) {
+  const filtered = getFiltered();
+  const total = Math.ceil(filtered.length / PAGE_SIZE);
+  currentPage = Math.max(1, Math.min(total, currentPage + dir));
+  render();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderPagination(total) {
+  const pages = Math.ceil(total / PAGE_SIZE);
+  const el = document.getElementById('pagination');
+  if (pages <= 1) { el.classList.add('hidden'); return; }
+  el.classList.remove('hidden');
+  el.style.display = 'flex';
+  document.getElementById('pg-info').textContent = `Strana ${currentPage} z ${pages} (${total} leadů)`;
+  document.getElementById('pg-prev').disabled = currentPage === 1;
+  document.getElementById('pg-next').disabled = currentPage === pages;
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+
 function render() {
   const el   = document.getElementById('cards');
-  const list = [...leads[activeTab]].sort((a, b) => b.score - a.score);
+  const filtered = getFiltered();
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const list  = filtered.slice(start, start + PAGE_SIZE);
 
-  if (!list.length) {
+  renderPagination(filtered.length);
+
+  if (!filtered.length) {
     el.innerHTML = `<div class="text-center py-16 text-gray-400 text-sm">
       <div class="text-4xl mb-2">${activeTab === 'pending' ? '🔍' : '✅'}</div>
       ${activeTab === 'pending'
