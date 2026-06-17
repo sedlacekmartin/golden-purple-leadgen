@@ -4,46 +4,32 @@ import { createClient } from '@supabase/supabase-js';
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 
-// TODO: Nahradit Google Places API (GOOGLE_PLACES_API_KEY)
-function searchCompanies(location, category, limit) {
-  return [
-    {
-      name: 'Restaurace U Koruny',
-      category, location,
-      website: 'http://ukoruny-trebic.cz',
-      phone: '+420 568 123 456',
-      google_rating: 4.1,
-      has_website: true,
-      website_age_years: 7,
+const PLACES_KEY = process.env.GOOGLE_PLACES_API_KEY;
+
+async function searchCompanies(location, category, limit) {
+  const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Goog-Api-Key': PLACES_KEY,
+      'X-Goog-FieldMask': 'places.displayName,places.rating,places.websiteUri,places.nationalPhoneNumber',
     },
-    {
-      name: 'Pekárna Novák s.r.o.',
-      category, location,
-      website: null,
-      phone: '+420 568 654 321',
-      google_rating: 4.6,
-      has_website: false,
-      website_age_years: null,
-    },
-    {
-      name: 'Kavárna Zelená',
-      category, location,
-      website: 'http://kavarna-zelena-trebic.cz',
-      phone: '+420 568 111 222',
-      google_rating: 3.1,
-      has_website: true,
-      website_age_years: 3,
-    },
-    {
-      name: 'Pizzeria Roma',
-      category, location,
-      website: null,
-      phone: '+420 568 999 888',
-      google_rating: 4.5,
-      has_website: false,
-      website_age_years: null,
-    },
-  ].slice(0, limit);
+    body: JSON.stringify({ textQuery: `${category} ${location}`, languageCode: 'cs', pageSize: limit }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(`Google Places: ${data.error?.message || res.status}`);
+
+  return (data.places || []).map(p => ({
+    name: p.displayName?.text || '',
+    category,
+    location,
+    website: p.websiteUri || null,
+    phone: p.nationalPhoneNumber || null,
+    google_rating: p.rating || null,
+    has_website: !!p.websiteUri,
+    website_age_years: null,
+  }));
 }
 
 function scoreLead(company) {
