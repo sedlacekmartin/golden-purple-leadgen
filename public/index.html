@@ -41,27 +41,14 @@
       </div>
 
       <div class="flex-1 min-w-36">
-        <label class="text-xs text-gray-400 font-medium mb-1 block">Kategorie</label>
-        <input id="inp-category" type="text" placeholder="např. restaurace" value="restaurace"
-          list="category-list"
-          class="w-full bg-slate-50 rounded-lg px-3 py-2.5 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-purple-400">
-        <datalist id="category-list">
-          <option value="restaurace">
-          <option value="kavárna">
-          <option value="pizzerie">
-          <option value="autoservis">
-          <option value="kadeřnictví">
-          <option value="kosmetický salon">
-          <option value="zubař">
-          <option value="účetní">
-          <option value="pekárna">
-          <option value="řeznictví">
-          <option value="květinářství">
-          <option value="realitní kancelář">
-          <option value="fitness">
-          <option value="právník">
-        </datalist>
-        <p class="text-xs text-gray-300 mt-1">Typ firmy — nebo napiš vlastní</p>
+        <div class="flex items-center justify-between mb-1">
+          <label class="text-xs text-gray-400 font-medium">Kategorie</label>
+          <button onclick="toggleAllCategories()" id="btn-all-cats"
+            class="text-xs text-purple-500 hover:text-purple-700 font-medium transition-colors">Vše</button>
+        </div>
+        <div id="cat-chips" class="flex flex-wrap gap-1.5">
+        </div>
+        <p class="text-xs text-gray-300 mt-2">Vyber jednu nebo víc kategorií</p>
       </div>
 
       <div class="w-20">
@@ -181,9 +168,9 @@ async function runSearch() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        location: document.getElementById('inp-location').value.trim() || 'Třebíč',
-        category: document.getElementById('inp-category').value.trim() || 'restaurace',
-        limit:    parseInt(document.getElementById('inp-limit').value)  || 10,
+        location:   document.getElementById('inp-location').value.trim() || 'Třebíč',
+        categories: selectedCats.size ? [...selectedCats] : ['restaurace'],
+        limit:      parseInt(document.getElementById('inp-limit').value) || 10,
       }),
     });
     const data = await res.json();
@@ -371,6 +358,41 @@ function toast(msg, isError = false) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.add('hidden'), 2800);
 }
+
+// ── Categories ───────────────────────────────────────────────────────────────
+
+const ALL_CATS = [
+  'restaurace','kavárna','pizzerie','autoservis','kadeřnictví',
+  'kosmetický salon','zubař','účetní','pekárna','řeznictví',
+  'květinářství','realitní kancelář','fitness','právník',
+];
+let selectedCats = new Set(['restaurace']);
+
+function renderChips() {
+  const el = document.getElementById('cat-chips');
+  el.innerHTML = ALL_CATS.map(cat => {
+    const active = selectedCats.has(cat);
+    return `<button onclick="toggleCat('${cat}')"
+      class="text-xs px-2.5 py-1 rounded-full border transition-all font-medium
+        ${active ? 'bg-purple-700 text-white border-purple-700' : 'bg-white text-gray-500 border-gray-200 hover:border-purple-300 hover:text-purple-600'}">
+      ${cat}
+    </button>`;
+  }).join('');
+  const allSelected = ALL_CATS.every(c => selectedCats.has(c));
+  document.getElementById('btn-all-cats').textContent = allSelected ? 'Zrušit vše' : 'Vše';
+}
+
+function toggleCat(cat) {
+  if (selectedCats.has(cat)) { selectedCats.delete(cat); } else { selectedCats.add(cat); }
+  renderChips();
+}
+
+function toggleAllCategories() {
+  if (ALL_CATS.every(c => selectedCats.has(c))) { selectedCats.clear(); } else { ALL_CATS.forEach(c => selectedCats.add(c)); }
+  renderChips();
+}
+
+renderChips();
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 loadLeads();

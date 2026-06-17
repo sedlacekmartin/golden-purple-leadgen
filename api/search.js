@@ -85,13 +85,18 @@ Podpis: Martin / Golden Purple`,
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
-  const { location = 'Třebíč', category = 'restaurace', limit = 10 } = req.body || {};
+  const { location = 'Třebíč', categories = ['restaurace'], limit = 10 } = req.body || {};
 
   try {
-    const companies = await searchCompanies(location, category, parseInt(limit));
+    const perCat = Math.max(3, Math.ceil(parseInt(limit) / categories.length));
+    const allCompanies = [];
+    for (const cat of categories) {
+      const results = await searchCompanies(location, cat, perCat);
+      allCompanies.push(...results);
+    }
+    const companies = allCompanies;
     console.log('Companies found:', companies.length);
     const scored = companies.map(scoreLead);
-    console.log('Scores:', scored.map(c => `${c.name}: ${c.score}`));
 
     const leads = [];
     for (const company of scored) {
