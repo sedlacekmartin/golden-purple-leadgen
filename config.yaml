@@ -1,0 +1,18 @@
+target:
+  location: "Třebíč"          # město nebo "Třebíč, Jihlava, Brno"
+  category: "restaurace"       # restaurace / e-shop / řemeslník / B2B
+  limit: 20
+
+scoring:
+  min_score: 30               # pod tímto skórem ignoruj
+  weights:
+    no_website: 40
+    old_website: 25            # web starší 5 let
+    low_rating: 20             # Google rating < 3.5
+    active_firm: 5             # vysoké hodnocení = reagující firma
+
+sender:
+  name: "Martin"
+  agency: "Golden Purple"
+  email: "martin@goldenpurple.cz"
+  website: "goldenpurple.cz"

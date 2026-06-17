@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Golden Purple — Lead-gen</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    .spin { animation: spin 0.8s linear infinite; }
+    .slide-up { animation: slideUp 0.18s ease; }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+
+<header class="bg-purple-800 shadow-lg sticky top-0 z-10">
+  <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-2.5">
+      <span class="text-amber-400 font-bold text-xl">◆</span>
+      <span class="text-white font-bold text-lg tracking-tight">Golden Purple</span>
+      <span class="text-purple-300 text-sm hidden sm:inline">/ Lead-gen</span>
+    </div>
+    <button onclick="loadLeads()" title="Obnovit"
+      class="text-purple-300 hover:text-white text-xl px-1 transition-colors">↻</button>
+  </div>
+</header>
+
+<main class="max-w-4xl mx-auto px-4 py-6 space-y-5">
+
+  <!-- Search panel -->
+  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+    <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Vyhledat nové leady</h2>
+    <div class="flex flex-wrap gap-2">
+      <input id="inp-location" type="text" placeholder="Lokalita" value="Třebíč"
+        class="flex-1 min-w-28 bg-slate-50 rounded-lg px-3 py-2.5 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-purple-400">
+      <input id="inp-category" type="text" placeholder="Kategorie" value="restaurace"
+        class="flex-1 min-w-28 bg-slate-50 rounded-lg px-3 py-2.5 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-purple-400">
+      <input id="inp-limit" type="number" placeholder="Počet" value="10" min="1" max="50"
+        class="w-16 bg-slate-50 rounded-lg px-3 py-2.5 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-purple-400 text-center">
+      <button id="search-btn" onclick="runSearch()"
+        class="bg-purple-700 hover:bg-purple-800 disabled:opacity-60 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 min-w-[6rem] justify-center">
+        <span id="search-spinner" class="hidden w-4 h-4 border-2 border-white/30 border-t-white rounded-full spin"></span>
+        <span id="search-label">🔍 Hledat</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">
+    <button id="tab-pending" onclick="switchTab('pending')"
+      class="px-4 py-1.5 rounded-lg text-sm font-medium transition-all bg-white text-purple-700 shadow-sm">
+      Ke schválení&thinsp;<span id="cnt-pending" class="text-xs bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded-full font-bold"></span>
+    </button>
+    <button id="tab-approved" onclick="switchTab('approved')"
+      class="px-4 py-1.5 rounded-lg text-sm font-medium transition-all text-gray-500 hover:text-gray-700">
+      Schválené&thinsp;<span id="cnt-approved" class="text-xs bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded-full font-bold"></span>
+    </button>
+  </div>
+
+  <!-- Cards -->
+  <div id="cards" class="space-y-3 pb-10"></div>
+
+</main>
+
+<!-- Toast -->
+<div id="toast-wrap" class="fixed bottom-6 inset-x-0 flex justify-center pointer-events-none z-50">
+  <div id="toast" class="hidden text-white text-sm px-5 py-2.5 rounded-full shadow-xl"></div>
+</div>
+
+<script>
+let activeTab = 'pending';
+let leads = { pending: [], approved: [] };
+
+// ── Data ─────────────────────────────────────────────────────────────────────
+
+async function loadLeads() {
+  try {
+    const [p, a] = await Promise.all([
+      fetch('/api/leads?status=pending').then(r => r.json()),
+      fetch('/api/leads?status=approved').then(r => r.json()),
+    ]);
+    leads.pending  = p.leads || [];
+    leads.approved = a.leads || [];
+    updateCounts();
+    render();
+  } catch { toast('Chyba při načítání', true); }
+}
+
+async function runSearch() {
+  const btn      = document.getElementById('search-btn');
+  const spinner  = document.getElementById('search-spinner');
+  const label    = document.getElementById('search-label');
+  btn.disabled   = true;
+  spinner.classList.remove('hidden');
+  label.textContent = 'Hledám…';
+  try {
+    const res = await fetch('/api/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        location: document.getElementById('inp-location').value.trim() || 'Třebíč',
+        category: document.getElementById('inp-category').value.trim() || 'restaurace',
+        limit:    parseInt(document.getElementById('inp-limit').value)  || 10,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Chyba serveru');
+    toast(`Nalezeno ${data.leads?.length ?? 0} leadů`);
+    await loadLeads();
+  } catch(e) {
+    toast(e.message || 'Chyba při vyhledávání', true);
+  } finally {
+    btn.disabled = false;
+    spinner.classList.add('hidden');
+    label.textContent = '🔍 Hledat';
+  }
+}
+
+async function patchLead(id, data) {
+  try {
+    await fetch('/api/approve', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, ...data }),
+    });
+  } catch { toast('Chyba při ukládání', true); }
+}
+
+// ── Actions ───────────────────────────────────────────────────────────────────
+
+async function approve(id) {
+  const ta = document.getElementById(`ta-${id}`);
+  const extra = (ta && !ta.classList.contains('hidden')) ? { email_draft: ta.value } : {};
+  await patchLead(id, { status: 'approved', ...extra });
+  toast('Lead schválen ✓');
+  await loadLeads();
+}
+
+async function skip(id) {
+  await patchLead(id, { status: 'skipped' });
+  leads.pending = leads.pending.filter(l => l.id !== id);
+  updateCounts();
+  render();
+  toast('Přeskočeno');
+}
+
+async function revert(id) {
+  await patchLead(id, { status: 'pending' });
+  toast('Vráceno ke schválení');
+  await loadLeads();
+}
+
+function copyDraft(id) {
+  const lead = leads.approved.find(l => l.id === id);
+  if (!lead?.email_draft) return;
+  navigator.clipboard.writeText(lead.email_draft).then(() => toast('Draft zkopírován 📋'));
+}
+
+function toggleEdit(id) {
+  const view = document.getElementById(`view-${id}`);
+  const ta   = document.getElementById(`ta-${id}`);
+  const btn  = document.getElementById(`edit-btn-${id}`);
+  const editing = !ta.classList.contains('hidden');
+  if (editing) {
+    view.textContent = ta.value;
+    view.classList.remove('hidden');
+    ta.classList.add('hidden');
+    btn.textContent = 'Upravit';
+    patchLead(id, { email_draft: ta.value });
+  } else {
+    view.classList.add('hidden');
+    ta.classList.remove('hidden');
+    btn.textContent = 'Uložit';
+    ta.focus();
+  }
+}
+
+// ── UI helpers ────────────────────────────────────────────────────────────────
+
+function switchTab(t) {
+  activeTab = t;
+  ['pending', 'approved'].forEach(id => {
+    const btn = document.getElementById(`tab-${id}`);
+    btn.className = id === t
+      ? 'px-4 py-1.5 rounded-lg text-sm font-medium transition-all bg-white text-purple-700 shadow-sm'
+      : 'px-4 py-1.5 rounded-lg text-sm font-medium transition-all text-gray-500 hover:text-gray-700';
+  });
+  render();
+}
+
+function updateCounts() {
+  document.getElementById('cnt-pending').textContent  = leads.pending.length  || '';
+  document.getElementById('cnt-approved').textContent = leads.approved.length || '';
+}
+
+function scoreBadge(score) {
+  if (score >= 60) return 'bg-red-100 text-red-700';
+  if (score >= 35) return 'bg-amber-100 text-amber-700';
+  return 'bg-green-100 text-green-700';
+}
+
+function esc(str) {
+  return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function render() {
+  const el   = document.getElementById('cards');
+  const list = [...leads[activeTab]].sort((a, b) => b.score - a.score);
+
+  if (!list.length) {
+    el.innerHTML = `<div class="text-center py-16 text-gray-400 text-sm">
+      <div class="text-4xl mb-2">${activeTab === 'pending' ? '🔍' : '✅'}</div>
+      ${activeTab === 'pending'
+        ? 'Zadej parametry nahoře a klikni Hledat.'
+        : 'Žádné schválené leady.'}
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = list.map(lead => {
+    const isPending = lead.status === 'pending';
+    return `
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 slide-up" id="card-${lead.id}">
+
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <div>
+          <div class="font-semibold text-gray-800">${esc(lead.company)}</div>
+          <div class="text-xs text-gray-400 mt-0.5">${[lead.location, lead.category].filter(Boolean).map(esc).join(' · ')}</div>
+        </div>
+        <span class="shrink-0 text-xs font-bold px-2.5 py-1 rounded-full ${scoreBadge(lead.score)}">${lead.score} b.</span>
+      </div>
+
+      ${lead.reasons?.length ? `
+      <div class="flex flex-wrap gap-1 mb-3">
+        ${lead.reasons.map(r => `<span class="text-xs bg-purple-50 text-purple-600 px-2 py-0.5 rounded-full">${esc(r)}</span>`).join('')}
+      </div>` : ''}
+
+      <div class="flex flex-wrap gap-3 text-xs text-gray-400 mb-3">
+        ${lead.phone   ? `<span>📞 ${esc(lead.phone)}</span>` : ''}
+        ${lead.website ? `<a href="${esc(lead.website)}" target="_blank" class="text-purple-500 hover:underline">🌐 ${esc(lead.website)}</a>`
+                       : `<span>🌐 Nemá web</span>`}
+      </div>
+
+      <div class="bg-slate-50 rounded-xl p-3 mb-3">
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Draft e-mailu</span>
+          ${isPending ? `<button id="edit-btn-${lead.id}" onclick="toggleEdit('${lead.id}')"
+            class="text-xs text-purple-500 hover:text-purple-700 font-medium">Upravit</button>` : ''}
+        </div>
+        <div id="view-${lead.id}" class="text-sm text-gray-600 whitespace-pre-line leading-relaxed">${esc(lead.email_draft)}</div>
+        <textarea id="ta-${lead.id}" class="hidden w-full text-sm text-gray-700 bg-white border border-purple-200 rounded-lg p-2 mt-1 resize-none focus:outline-none focus:ring-2 focus:ring-purple-400 leading-relaxed" rows="6">${esc(lead.email_draft)}</textarea>
+      </div>
+
+      <div class="flex gap-2">
+        ${isPending ? `
+          <button onclick="approve('${lead.id}')"
+            class="flex-1 bg-purple-700 hover:bg-purple-800 text-white py-2 rounded-xl text-sm font-semibold transition-colors">
+            ✓ Schválit
+          </button>
+          <button onclick="skip('${lead.id}')"
+            class="flex-1 border border-gray-200 hover:bg-gray-50 text-gray-500 py-2 rounded-xl text-sm font-medium transition-colors">
+            Přeskočit
+          </button>
+        ` : `
+          <span class="flex-1 flex items-center text-sm text-green-600 font-medium">✅ Schváleno</span>
+          <button onclick="copyDraft('${lead.id}')"
+            class="border border-gray-200 hover:bg-gray-50 text-gray-500 px-4 py-2 rounded-xl text-sm font-medium transition-colors">
+            📋 Kopírovat
+          </button>
+          <button onclick="revert('${lead.id}')"
+            class="border border-gray-200 hover:bg-red-50 hover:text-red-400 text-gray-400 px-3 py-2 rounded-xl text-sm transition-colors">
+            Vrátit
+          </button>
+        `}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+
+let toastTimer;
+function toast(msg, isError = false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `${isError ? 'bg-red-800' : 'bg-gray-900'} text-white text-sm px-5 py-2.5 rounded-full shadow-xl`;
+  el.classList.remove('hidden');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.add('hidden'), 2800);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+loadLeads();
+</script>
+</body>
+</html>

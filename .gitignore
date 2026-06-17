@@ -1,0 +1,8 @@
+.env
+.env.local
+__pycache__/
+*.pyc
+leads_output.json
+.DS_Store
+venv/
+.venv/
