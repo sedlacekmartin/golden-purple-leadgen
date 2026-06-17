@@ -265,6 +265,15 @@ async function revert(id) {
   await loadLeads();
 }
 
+function openMockup(id, btn) {
+  const orig = btn.textContent;
+  btn.textContent = 'Generuji…';
+  btn.disabled = true;
+  const w = window.open(`/api/mockup?id=${id}`, '_blank');
+  setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 3000);
+  if (!w) toast('Povol vyskakovací okna v prohlížeči', true);
+}
+
 function copyDraft(id) {
   const lead = leads.approved.find(l => l.id === id);
   if (!lead?.email_draft) return;
@@ -461,7 +470,7 @@ function render() {
         <textarea id="ta-${lead.id}" class="hidden w-full text-sm text-gray-700 bg-white border border-purple-200 rounded-lg p-2 mt-1 resize-none focus:outline-none focus:ring-2 focus:ring-purple-400 leading-relaxed" rows="6">${esc(lead.email_draft)}</textarea>
       </div>
 
-      <div class="flex gap-2">
+      <div class="flex gap-2 flex-wrap">
         ${isPending ? `
           <button onclick="approve('${lead.id}')"
             class="flex-1 bg-purple-700 hover:bg-purple-800 text-white py-2 rounded-xl text-sm font-semibold transition-colors">
@@ -482,6 +491,10 @@ function render() {
             Vrátit
           </button>
         `}
+        <button onclick="openMockup('${lead.id}', this)"
+          class="border border-purple-200 hover:bg-purple-50 text-purple-600 px-3 py-2 rounded-xl text-sm font-medium transition-colors whitespace-nowrap">
+          🎨 Návrh webu
+        </button>
       </div>
     </div>`;
   }).join('');
