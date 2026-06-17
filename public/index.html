@@ -154,7 +154,16 @@
   <div id="pagination" class="hidden flex items-center justify-between pb-10">
     <button id="pg-prev" onclick="changePage(-1)"
       class="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 disabled:opacity-30 transition-colors">← Předchozí</button>
-    <span id="pg-info" class="text-xs text-gray-400"></span>
+    <div class="flex items-center gap-3">
+      <span id="pg-info" class="text-xs text-gray-400"></span>
+      <select id="pg-size" onchange="changePageSize(this.value)"
+        class="bg-slate-50 rounded-lg px-2 py-1.5 text-xs border-0 focus:outline-none focus:ring-2 focus:ring-purple-400 text-gray-500">
+        <option value="5">5 / str.</option>
+        <option value="10" selected>10 / str.</option>
+        <option value="25">25 / str.</option>
+        <option value="50">50 / str.</option>
+      </select>
+    </div>
     <button id="pg-next" onclick="changePage(1)"
       class="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 disabled:opacity-30 transition-colors">Další →</button>
   </div>
@@ -362,8 +371,14 @@ function esc(str) {
 
 // ── Pagination ────────────────────────────────────────────────────────────────
 
-const PAGE_SIZE = 10;
+let PAGE_SIZE = 10;
 let currentPage = 1;
+
+function changePageSize(val) {
+  PAGE_SIZE = parseInt(val);
+  resetPage();
+  render();
+}
 
 function resetPage() { currentPage = 1; }
 
