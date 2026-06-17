@@ -77,7 +77,7 @@ export default async function handler(req, res) {
   const { location = 'Třebíč', category = 'restaurace', limit = 10 } = req.body || {};
 
   try {
-    const companies = searchCompanies(location, category, parseInt(limit));
+    const companies = await searchCompanies(location, category, parseInt(limit));
     const scored = companies.map(scoreLead).filter(c => c.score > 30);
 
     const leads = [];
