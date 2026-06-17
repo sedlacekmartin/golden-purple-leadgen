@@ -18,6 +18,7 @@ async function searchCompanies(location, category, limit) {
   });
 
   const data = await res.json();
+  console.log('Places API status:', res.status, 'places count:', data.places?.length ?? 0, data.error?.message ?? '');
   if (!res.ok) throw new Error(`Google Places: ${data.error?.message || res.status}`);
 
   return (data.places || []).map(p => ({
@@ -88,7 +89,9 @@ export default async function handler(req, res) {
 
   try {
     const companies = await searchCompanies(location, category, parseInt(limit));
-    const scored = companies.map(scoreLead).filter(c => c.score > 0);
+    console.log('Companies found:', companies.length);
+    const scored = companies.map(scoreLead);
+    console.log('Scores:', scored.map(c => `${c.name}: ${c.score}`));
 
     const leads = [];
     for (const company of scored) {
