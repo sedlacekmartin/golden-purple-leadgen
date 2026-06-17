@@ -18,8 +18,8 @@ async function searchCompanies(location, category, limit) {
   });
 
   const data = await res.json();
-  console.log('Places API status:', res.status, 'places count:', data.places?.length ?? 0, data.error?.message ?? '');
-  if (!res.ok) throw new Error(`Google Places: ${data.error?.message || res.status}`);
+  console.log('Places raw:', JSON.stringify(data).slice(0, 500));
+  if (!res.ok || data.error) throw new Error(`Google Places ${res.status}: ${data.error?.message || JSON.stringify(data.error)}`);
 
   return (data.places || []).map(p => ({
     name: p.displayName?.text || '',
