@@ -31,18 +31,54 @@
   <!-- Search panel -->
   <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
     <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Vyhledat nové leady</h2>
-    <div class="flex flex-wrap gap-2">
-      <input id="inp-location" type="text" placeholder="Lokalita" value="Třebíč"
-        class="flex-1 min-w-28 bg-slate-50 rounded-lg px-3 py-2.5 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-purple-400">
-      <input id="inp-category" type="text" placeholder="Kategorie" value="restaurace"
-        class="flex-1 min-w-28 bg-slate-50 rounded-lg px-3 py-2.5 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-purple-400">
-      <input id="inp-limit" type="number" placeholder="Počet" value="10" min="1" max="50"
-        class="w-16 bg-slate-50 rounded-lg px-3 py-2.5 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-purple-400 text-center">
-      <button id="search-btn" onclick="runSearch()"
-        class="bg-purple-700 hover:bg-purple-800 disabled:opacity-60 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 min-w-[6rem] justify-center">
-        <span id="search-spinner" class="hidden w-4 h-4 border-2 border-white/30 border-t-white rounded-full spin"></span>
-        <span id="search-label">🔍 Hledat</span>
-      </button>
+    <div class="flex flex-wrap gap-3 items-end">
+
+      <div class="flex-1 min-w-36">
+        <label class="text-xs text-gray-400 font-medium mb-1 block">Lokalita</label>
+        <input id="inp-location" type="text" placeholder="např. Třebíč" value="Třebíč"
+          class="w-full bg-slate-50 rounded-lg px-3 py-2.5 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-purple-400">
+        <p class="text-xs text-gray-300 mt-1">Město nebo region</p>
+      </div>
+
+      <div class="flex-1 min-w-36">
+        <label class="text-xs text-gray-400 font-medium mb-1 block">Kategorie</label>
+        <input id="inp-category" type="text" placeholder="např. restaurace" value="restaurace"
+          list="category-list"
+          class="w-full bg-slate-50 rounded-lg px-3 py-2.5 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-purple-400">
+        <datalist id="category-list">
+          <option value="restaurace">
+          <option value="kavárna">
+          <option value="pizzerie">
+          <option value="autoservis">
+          <option value="kadeřnictví">
+          <option value="kosmetický salon">
+          <option value="zubař">
+          <option value="účetní">
+          <option value="pekárna">
+          <option value="řeznictví">
+          <option value="květinářství">
+          <option value="realitní kancelář">
+          <option value="fitness">
+          <option value="právník">
+        </datalist>
+        <p class="text-xs text-gray-300 mt-1">Typ firmy — nebo napiš vlastní</p>
+      </div>
+
+      <div class="w-20">
+        <label class="text-xs text-gray-400 font-medium mb-1 block">Počet</label>
+        <input id="inp-limit" type="number" placeholder="10" value="10" min="1" max="50"
+          class="w-full bg-slate-50 rounded-lg px-3 py-2.5 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-purple-400 text-center">
+        <p class="text-xs text-gray-300 mt-1">Max 50</p>
+      </div>
+
+      <div class="pb-5">
+        <button id="search-btn" onclick="runSearch()"
+          class="bg-purple-700 hover:bg-purple-800 disabled:opacity-60 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 min-w-[6rem] justify-center">
+          <span id="search-spinner" class="hidden w-4 h-4 border-2 border-white/30 border-t-white rounded-full spin"></span>
+          <span id="search-label">🔍 Hledat</span>
+        </button>
+      </div>
+
     </div>
   </div>
 
