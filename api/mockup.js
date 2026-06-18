@@ -33,18 +33,15 @@ async function generateAndStore(lead) {
   const prompt = `Professional website landing page mockup design for "${lead.company}", a ${lead.category} business located in ${lead.location}, Czech Republic. ${style}. Desktop browser screenshot, full page view showing: modern navigation bar with logo and menu, large hero section with compelling headline and call-to-action button, services or features section with 3 cards, contact section. Ultra realistic web design, high quality UI, modern typography, professional photography as background. Clean layout, pixel perfect design. No text overlays in foreign languages.`;
 
   const response = await openai.images.generate({
-    model: 'dall-e-3',
+    model: 'gpt-image-1',
     prompt,
-    size: '1792x1024',
-    quality: 'standard',
+    size: '1536x1024',
+    quality: 'medium',
     n: 1,
   });
 
-  const tempUrl = response.data[0].url;
-
-  // Download image
-  const imgRes = await fetch(tempUrl);
-  const buffer = await imgRes.arrayBuffer();
+  const base64 = response.data[0].b64_json;
+  const buffer = Buffer.from(base64, 'base64');
 
   // Upload to Supabase Storage
   const fileName = `${lead.id}.png`;
