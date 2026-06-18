@@ -176,6 +176,18 @@
 
 </main>
 
+<!-- Mockup modal -->
+<div id="mockup-modal" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onclick="closeMockup(event)">
+  <div class="relative max-w-6xl w-full">
+    <button onclick="closeMockup()" class="absolute -top-10 right-0 text-white/70 hover:text-white text-sm">✕ Zavřít</button>
+    <img id="mockup-img" src="" alt="Návrh webu" class="w-full rounded-xl shadow-2xl">
+    <div class="flex justify-end mt-3 gap-2">
+      <a id="mockup-dl" href="" download class="bg-white/10 hover:bg-white/20 text-white text-sm px-4 py-2 rounded-lg transition-colors">⬇ Stáhnout</a>
+      <button id="mockup-regen" onclick="regenMockup()" class="bg-purple-600 hover:bg-purple-700 text-white text-sm px-4 py-2 rounded-lg transition-colors">↻ Regenerovat</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div id="toast-wrap" class="fixed bottom-6 inset-x-0 flex justify-center pointer-events-none z-50">
   <div id="toast" class="hidden text-white text-sm px-5 py-2.5 rounded-full shadow-xl"></div>
@@ -265,6 +277,55 @@ async function revert(id) {
   await loadLeads();
 }
 
+
+// ── Mockup modal ──────────────────────────────────────────────────────────────
+
+let currentMockupId = null;
+
+async function showMockup(id, btn) {
+  currentMockupId = id;
+  const orig = btn.textContent;
+  btn.textContent = 'Generuji…';
+  btn.disabled = true;
+  try {
+    const res  = await fetch(`/api/mockup?id=${id}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Chyba');
+    document.getElementById('mockup-img').src = data.url;
+    document.getElementById('mockup-dl').href = data.url;
+    document.getElementById('mockup-modal').classList.remove('hidden');
+  } catch(e) {
+    toast(e.message, true);
+  } finally {
+    btn.textContent = orig;
+    btn.disabled = false;
+  }
+}
+
+async function regenMockup() {
+  if (!currentMockupId) return;
+  const btn = document.getElementById('mockup-regen');
+  btn.textContent = 'Generuji…';
+  btn.disabled = true;
+  try {
+    const res  = await fetch(`/api/mockup?id=${currentMockupId}&regen=1`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Chyba');
+    document.getElementById('mockup-img').src = data.url;
+    document.getElementById('mockup-dl').href = data.url;
+  } catch(e) {
+    toast(e.message, true);
+  } finally {
+    btn.textContent = '↻ Regenerovat';
+    btn.disabled = false;
+  }
+}
+
+function closeMockup(e) {
+  if (e && e.target !== document.getElementById('mockup-modal')) return;
+  document.getElementById('mockup-modal').classList.add('hidden');
+  document.getElementById('mockup-img').src = '';
+}
 
 function copyDraft(id) {
   const lead = leads.approved.find(l => l.id === id);
@@ -483,10 +544,10 @@ function render() {
             Vrátit
           </button>
         `}
-        <a href="/api/mockup?id=${lead.id}" target="_blank" rel="noopener"
-          class="border border-purple-200 hover:bg-purple-50 text-purple-600 px-3 py-2 rounded-xl text-sm font-medium transition-colors whitespace-nowrap inline-flex items-center">
+        <button onclick="showMockup('${lead.id}', this)"
+          class="border border-purple-200 hover:bg-purple-50 text-purple-600 px-3 py-2 rounded-xl text-sm font-medium transition-colors whitespace-nowrap">
           🎨 Návrh webu
-        </a>
+        </button>
       </div>
     </div>`;
   }).join('');
