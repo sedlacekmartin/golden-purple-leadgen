@@ -1,46 +1,68 @@
 import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 
-const openai  = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+const openai    = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const supabase  = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 
 export const config = { maxDuration: 60 };
 
 const CATEGORY_STYLE = {
-  'restaurace':           'warm earthy tones, deep red and gold accents, elegant dining atmosphere',
-  'kavárna':              'cozy warm browns, cream whites, artisan coffee shop feel',
-  'pizzerie':             'rustic Italian style, red green white palette, brick texture',
+  'restaurace':           'warm earthy tones, deep red and gold accents, elegant dining',
+  'kavárna':              'cozy warm browns and cream whites, artisan coffee shop',
+  'pizzerie':             'rustic Italian, red green white palette',
   'autoservis':           'industrial dark blue and silver, professional automotive',
-  'kadeřnictví':          'modern minimalist, black white gold, luxury salon feel',
-  'kosmetický salon':     'soft pink and rose gold, elegant beauty spa atmosphere',
-  'zubař':                'clean clinical white and light blue, modern medical',
-  'stavební firma':       'strong bold orange and dark grey, construction industrial',
-  'strojírenství':        'industrial steel blue and charcoal, precision engineering',
-  'dopravní firma':       'navy blue and yellow, professional logistics and transport',
+  'kadeřnictví':          'modern minimalist black white gold, luxury salon',
+  'kosmetický salon':     'soft pink and rose gold, elegant beauty spa',
+  'zubař':                'clean white and light blue, modern medical clinic',
+  'stavební firma':       'bold orange and dark grey, construction industrial',
+  'strojírenství':        'steel blue and charcoal, precision engineering',
+  'dopravní firma':       'navy blue and yellow, professional logistics',
   'účetní':               'trustworthy dark blue and white, professional corporate',
-  'právník':              'prestigious dark navy and gold, law firm gravitas',
-  'fitness':              'energetic black and electric orange, dynamic sports',
+  'právník':              'dark navy and gold, prestigious law firm',
+  'fitness':              'black and electric orange, dynamic sports energy',
   'realitní kancelář':    'sophisticated grey and gold, premium real estate',
+  'CNC obrábění':         'industrial steel blue, precision manufacturing',
 };
 
 function getStyle(category) {
   return CATEGORY_STYLE[category] || 'modern professional purple and white, clean business';
 }
 
-async function generateAndStore(lead) {
+async function buildPrompt(lead) {
   const style = getStyle(lead.category);
+  const msg = await anthropic.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 1000,
+    messages: [{
+      role: 'user',
+      content: `You are an expert at writing image generation prompts for gpt-image-1 to create realistic website mockup screenshots.
 
-  const prompt = `Create a stunning, ultra-realistic website design mockup for "${lead.company}", a ${lead.category} business based in ${lead.location}, Czech Republic. ${style}.
+Write a single detailed image generation prompt for this Czech business website mockup:
 
-The image should look like a real screenshot of a professionally designed website viewed on a large desktop monitor. Include these sections from top to bottom:
+Company: ${lead.company}
+Type: ${lead.category}
+Location: ${lead.location}
+Visual style: ${style}
 
-1. NAVIGATION BAR: Dark or colored background, company logo/name on left, 5 navigation links in center, contact button on right
-2. HERO SECTION: Full-width, dramatic high-quality background photo related to ${lead.category}, dark overlay, large white bold headline about the company, subtitle text, two buttons (primary colored + ghost outline)
-3. ABOUT / STATS ROW: Light background, 3-4 large numbers with labels (years of experience, clients, projects etc.)
-4. SERVICES SECTION: White background, section heading, grid of 3 cards each with an icon, service name, short description
-5. FOOTER: Dark background, company name, links, copyright
+Requirements for the prompt you write:
+- ALL visible text must be in Czech language (Czech navigation, Czech headlines, Czech descriptions, Czech CTAs like "Nezávazná poptávka", "Zjistit více", "Kontaktujte nás")
+- Describe a realistic full desktop website screenshot showing multiple sections
+- Include specific, realistic Czech content appropriate for ${lead.category} (realistic stats, real-looking phone +420 format, Czech address)
+- Describe professional photography relevant to ${lead.category}
+- The design quality should match top Czech web agencies - pixel perfect, modern, convincing
+- Include company name "${lead.company}" prominently in the design
 
-Style: Modern, premium, high-end design agency quality. Sharp typography, professional photography, smooth gradients, subtle shadows. Pixel-perfect UI components. The design should feel like it cost 50,000 CZK to build.`;
+Output ONLY the image prompt text, no explanation, no preamble.`,
+    }],
+  });
+  return msg.content[0].text.trim();
+}
+
+async function generateAndStore(lead) {
+  const prompt = await buildPrompt(lead);
+  console.log('Image prompt:', prompt.slice(0, 200));
 
   const response = await openai.images.generate({
     model: 'gpt-image-1',
