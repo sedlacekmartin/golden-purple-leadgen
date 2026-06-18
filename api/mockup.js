@@ -30,17 +30,20 @@ function getStyle(category) {
 async function generateAndStore(lead) {
   const style = getStyle(lead.category);
 
-  const prompt = `Professional website landing page mockup design for "${lead.company}", a ${lead.category} business located in ${lead.location}, Czech Republic. ${style}. Desktop browser screenshot, full page view showing: modern navigation bar with logo and menu, large hero section with compelling headline and call-to-action button, services or features section with 3 cards, contact section. Ultra realistic web design, high quality UI, modern typography, professional photography as background. Clean layout, pixel perfect design. No text overlays in foreign languages.`;
+  const prompt = `Ultra-realistic website design mockup screenshot for "${lead.company}", a ${lead.category} business in ${lead.location}. ${style}. Shown as a full desktop browser viewport. Design includes: sticky navigation bar with logo text and 4 menu links, full-width hero section with a stunning professional background photo, large bold headline in white, subtitle text, two CTA buttons. Below: a clean white section with 3 feature/service cards with icons, each with a short heading and description. Footer with contact info. Pixel-perfect modern UI, Dribbble-quality web design, professional typography, realistic and detailed. High-end agency portfolio style. No lorem ipsum.`;
 
   const response = await openai.images.generate({
-    model: 'gpt-image-1',
+    model: 'dall-e-3',
     prompt,
-    size: '1536x1024',
-    quality: 'medium',
+    size: '1792x1024',
+    quality: 'hd',
     n: 1,
   });
 
-  const base64 = response.data[0].b64_json;
+  const tempUrl = response.data[0].url;
+  const imgRes = await fetch(tempUrl);
+  const buffer = await imgRes.arrayBuffer();
+  const base64 = Buffer.from(buffer).toString('base64');
   return `data:image/png;base64,${base64}`;
 }
 
