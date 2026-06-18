@@ -30,20 +30,27 @@ function getStyle(category) {
 async function generateAndStore(lead) {
   const style = getStyle(lead.category);
 
-  const prompt = `Ultra-realistic website design mockup screenshot for "${lead.company}", a ${lead.category} business in ${lead.location}. ${style}. Shown as a full desktop browser viewport. Design includes: sticky navigation bar with logo text and 4 menu links, full-width hero section with a stunning professional background photo, large bold headline in white, subtitle text, two CTA buttons. Below: a clean white section with 3 feature/service cards with icons, each with a short heading and description. Footer with contact info. Pixel-perfect modern UI, Dribbble-quality web design, professional typography, realistic and detailed. High-end agency portfolio style. No lorem ipsum.`;
+  const prompt = `Create a stunning, ultra-realistic website design mockup for "${lead.company}", a ${lead.category} business based in ${lead.location}, Czech Republic. ${style}.
+
+The image should look like a real screenshot of a professionally designed website viewed on a large desktop monitor. Include these sections from top to bottom:
+
+1. NAVIGATION BAR: Dark or colored background, company logo/name on left, 5 navigation links in center, contact button on right
+2. HERO SECTION: Full-width, dramatic high-quality background photo related to ${lead.category}, dark overlay, large white bold headline about the company, subtitle text, two buttons (primary colored + ghost outline)
+3. ABOUT / STATS ROW: Light background, 3-4 large numbers with labels (years of experience, clients, projects etc.)
+4. SERVICES SECTION: White background, section heading, grid of 3 cards each with an icon, service name, short description
+5. FOOTER: Dark background, company name, links, copyright
+
+Style: Modern, premium, high-end design agency quality. Sharp typography, professional photography, smooth gradients, subtle shadows. Pixel-perfect UI components. The design should feel like it cost 50,000 CZK to build.`;
 
   const response = await openai.images.generate({
-    model: 'dall-e-3',
+    model: 'gpt-image-1',
     prompt,
-    size: '1792x1024',
-    quality: 'hd',
+    size: '1536x1024',
+    quality: 'high',
     n: 1,
   });
 
-  const tempUrl = response.data[0].url;
-  const imgRes = await fetch(tempUrl);
-  const buffer = await imgRes.arrayBuffer();
-  const base64 = Buffer.from(buffer).toString('base64');
+  const base64 = response.data[0].b64_json;
   return `data:image/png;base64,${base64}`;
 }
 
