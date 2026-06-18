@@ -53,7 +53,8 @@ export default async function handler(req, res) {
 
   if (error || !lead) return res.status(404).json({ error: 'Lead nenalezen' });
 
-  if (lead.mockup_url && regen !== '1') {
+  const isValid = lead.mockup_url?.startsWith('data:image');
+  if (isValid && regen !== '1') {
     return res.status(200).json({ url: lead.mockup_url });
   }
 
