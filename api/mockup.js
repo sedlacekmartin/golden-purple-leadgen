@@ -41,17 +41,7 @@ async function generateAndStore(lead) {
   });
 
   const base64 = response.data[0].b64_json;
-  const buffer = Buffer.from(base64, 'base64');
-
-  // Upload to Supabase Storage
-  const fileName = `${lead.id}.png`;
-  await supabase.storage.from('mockups').upload(fileName, buffer, {
-    contentType: 'image/png',
-    upsert: true,
-  });
-
-  const { data: { publicUrl } } = supabase.storage.from('mockups').getPublicUrl(fileName);
-  return publicUrl;
+  return `data:image/png;base64,${base64}`;
 }
 
 export default async function handler(req, res) {
