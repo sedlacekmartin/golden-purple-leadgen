@@ -216,6 +216,8 @@
       <span id="header-company" class="text-white font-bold text-lg tracking-tight">Lead-gen</span>
     </div>
     <div class="flex items-center gap-3">
+      <a id="admin-link" href="/admin" title="Admin panel" target="_blank"
+        class="hidden text-amber-400 hover:text-amber-200 text-sm px-2 py-1 rounded-lg border border-amber-700 hover:border-amber-500 transition-colors">Admin</a>
       <button onclick="exportCsv()" title="Export do CSV"
         class="text-purple-300 hover:text-white text-sm px-2 py-1 rounded-lg border border-purple-700 hover:border-purple-500 transition-colors">⬇ CSV</button>
       <button onclick="openWsModal()" title="Nastavení firmy"
@@ -450,6 +452,7 @@
 <script>
 // ── Supabase Auth ─────────────────────────────────────────────────────────────
 
+const ADMIN_EMAILS = ['sedlacek_m@centrum.cz', 'sedlacekmartin1@gmail.com'];
 const SUPABASE_URL = 'https://ktevejpvblfhyulgawki.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt0ZXZlanB2YmxmaHl1bGdhd2tpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2OTI4MzQsImV4cCI6MjA5NzI2ODgzNH0.-8xmLoiExiqj0DX0M8P3vtYYZOVWN6M_zd1um4R-s_Y';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -516,6 +519,9 @@ async function initWorkspace() {
   const { data } = await sb.from('workspaces').select('*').maybeSingle();
   workspace = data;
   updateSearchUI();
+  if (ADMIN_EMAILS.includes(session?.user?.email?.toLowerCase())) {
+    document.getElementById('admin-link').classList.remove('hidden');
+  }
   if (!workspace) {
     openWsModal(true); // onboarding — nejde zavřít
   } else {

@@ -8,7 +8,9 @@ export default async function handler(req, res) {
   const auth = await requireUser(req);
   if (auth.error) return res.status(auth.status).json({ error: auth.error });
 
-  const adminEmails = (process.env.ADMIN_EMAIL || '').split(',').map(e => e.trim().toLowerCase());
+  const envEmails = (process.env.ADMIN_EMAIL || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+  // fallback hardcoded so access works even if env var isn't updated yet
+  const adminEmails = envEmails.length ? envEmails : ['sedlacek_m@centrum.cz', 'sedlacekmartin1@gmail.com'];
   if (!adminEmails.includes(auth.user.email?.toLowerCase())) {
     return res.status(403).json({ error: 'Přístup odepřen' });
   }
