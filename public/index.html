@@ -720,9 +720,11 @@ async function generateFollowUp(id) {
 }
 
 let skipTargetId = null;
+let skipBulkIds = [];
 
 function skip(id) {
   skipTargetId = id;
+  skipBulkIds = [];
   ['sr-obor', 'sr-lokalita', 'sr-velikost', 'sr-jiny'].forEach(cbId => {
     const el = document.getElementById(cbId);
     if (el) el.checked = false;
@@ -733,26 +735,39 @@ function skip(id) {
 function closeSkipModal() {
   document.getElementById('skip-modal').classList.add('hidden');
   skipTargetId = null;
+  skipBulkIds = [];
 }
 
 async function confirmSkip() {
-  if (!skipTargetId) return;
   const reasons = [];
   if (document.getElementById('sr-obor').checked)     reasons.push('nesedí obor');
   if (document.getElementById('sr-lokalita').checked) reasons.push('špatná lokalita');
   if (document.getElementById('sr-velikost').checked) reasons.push('nevhodná velikost');
   if (document.getElementById('sr-jiny').checked)     reasons.push('jiný důvod');
   const skip_reason = reasons.join(', ') || null;
-  const id = skipTargetId;
-  closeSkipModal();
 
-  const lead = (leadsByStatus.pending || []).find(l => l.id === id);
-  if (lead) { lead.status = 'skipped'; lead.skip_reason = skip_reason; }
-  await patchLead(id, { status: 'skipped', skip_reason });
-  leadsByStatus.pending = (leadsByStatus.pending || []).filter(l => l.id !== id);
-  (leadsByStatus.skipped = leadsByStatus.skipped || []).unshift({ ...lead, status: 'skipped', skip_reason });
-  renderTabs(); renderStats(); render();
-  toast('Přeskočeno');
+  if (skipBulkIds.length > 0) {
+    // Bulk skip
+    const ids = skipBulkIds;
+    closeSkipModal();
+    for (const id of ids) {
+      await patchLead(id, { status: 'skipped', skip_reason });
+    }
+    toast(`Přeskočeno ${ids.length} leadů`);
+    toggleSelectMode();
+    await loadLeads();
+  } else if (skipTargetId) {
+    // Single skip
+    const id = skipTargetId;
+    closeSkipModal();
+    const lead = (leadsByStatus.pending || []).find(l => l.id === id);
+    if (lead) { lead.status = 'skipped'; lead.skip_reason = skip_reason; }
+    await patchLead(id, { status: 'skipped', skip_reason });
+    leadsByStatus.pending = (leadsByStatus.pending || []).filter(l => l.id !== id);
+    (leadsByStatus.skipped = leadsByStatus.skipped || []).unshift({ ...lead, status: 'skipped', skip_reason });
+    renderTabs(); renderStats(); render();
+    toast('Přeskočeno');
+  }
 }
 
 function saveNotes(id, value) {
@@ -1060,16 +1075,15 @@ async function bulkApprove() {
   await loadLeads();
 }
 
-async function bulkSkip() {
+function bulkSkip() {
   if (!selectedIds.size) return;
-  const ids = [...selectedIds];
-  for (const id of ids) {
-    await patchLead(id, { status: 'skipped' });
-    delete leadsByStatus.pending;
-  }
-  toast(`Přeskočeno ${ids.length} leadů`);
-  toggleSelectMode();
-  await loadLeads();
+  skipTargetId = null;
+  skipBulkIds = [...selectedIds];
+  ['sr-obor', 'sr-lokalita', 'sr-velikost', 'sr-jiny'].forEach(cbId => {
+    const el = document.getElementById(cbId);
+    if (el) el.checked = false;
+  });
+  document.getElementById('skip-modal').classList.remove('hidden');
 }
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
