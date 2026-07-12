@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LeadGen AI — B2B leady pro české firmy</title>
+  <meta name="description" content="Najdi firmy v tvém oboru, nech AI ohodnotit jejich potenciál a získej personalizovaný e-mail draft — za minuty, ne hodiny.">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    .hero-gradient { background: linear-gradient(135deg, #0f0820 0%, #1a0a3a 40%, #0d1a2e 100%); }
+    .gold-gradient { background: linear-gradient(90deg, #f59e0b, #fbbf24); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .purple-gradient { background: linear-gradient(135deg, #7c3aed, #6d28d9); }
+    .card-glow { box-shadow: 0 0 40px rgba(124,58,237,0.15); }
+    .step-line::after { content: ''; position: absolute; left: 50%; top: 100%; width: 2px; height: 40px; background: linear-gradient(to bottom, #7c3aed, transparent); transform: translateX(-50%); }
+    @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+    .float { animation: float 4s ease-in-out infinite; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+    .fade-up { animation: fadeUp 0.6s ease forwards; }
+    .faq-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+    .faq-item.open .faq-content { max-height: 200px; }
+    .faq-item.open .faq-arrow { transform: rotate(180deg); }
+    .faq-arrow { transition: transform 0.3s ease; }
+  </style>
+</head>
+<body class="bg-white text-gray-900 antialiased">
+
+<!-- ── NAV ───────────────────────────────────────────────────────────────── -->
+<nav class="fixed top-0 inset-x-0 z-50 border-b border-white/10 backdrop-blur-md bg-black/30">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
+    <a href="/landing.html" class="flex items-center gap-2">
+      <span class="text-amber-400 font-black text-xl">◆</span>
+      <span class="text-white font-bold text-lg tracking-tight">LeadGen<span class="text-amber-400">.ai</span></span>
+    </a>
+    <div class="hidden sm:flex items-center gap-6 text-sm text-gray-300">
+      <a href="#jak-to-funguje" class="hover:text-white transition-colors">Jak to funguje</a>
+      <a href="#funkce" class="hover:text-white transition-colors">Funkce</a>
+      <a href="#cenik" class="hover:text-white transition-colors">Ceník</a>
+      <a href="#faq" class="hover:text-white transition-colors">FAQ</a>
+    </div>
+    <div class="flex items-center gap-3">
+      <a href="/index.html" class="text-sm text-gray-300 hover:text-white transition-colors font-medium">Přihlásit se</a>
+      <a href="/index.html" class="text-sm bg-amber-400 hover:bg-amber-300 text-gray-900 font-bold px-4 py-2 rounded-lg transition-colors">
+        Vyzkoušet zdarma →
+      </a>
+    </div>
+  </div>
+</nav>
+
+<!-- ── HERO ──────────────────────────────────────────────────────────────── -->
+<section class="hero-gradient min-h-screen flex items-center pt-16 pb-20 px-4 relative overflow-hidden">
+  <!-- Background decoration -->
+  <div class="absolute inset-0 overflow-hidden pointer-events-none">
+    <div class="absolute -top-40 -right-40 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl"></div>
+    <div class="absolute -bottom-20 -left-20 w-80 h-80 bg-amber-400/10 rounded-full blur-3xl"></div>
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple-900/20 rounded-full blur-3xl"></div>
+  </div>
+
+  <div class="max-w-6xl mx-auto w-full relative">
+    <div class="grid lg:grid-cols-2 gap-12 items-center">
+
+      <!-- Left: copy -->
+      <div class="fade-up">
+        <div class="inline-flex items-center gap-2 bg-purple-900/50 border border-purple-700/50 text-purple-300 text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
+          <span class="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
+          Poháněno Claude AI · Google Places · ARES
+        </div>
+
+        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-black text-white leading-tight tracking-tight mb-5">
+          Přestaň hledat<br>zákazníky ručně.<br>
+          <span class="gold-gradient">Nech to na AI.</span>
+        </h1>
+
+        <p class="text-lg text-gray-400 leading-relaxed mb-8 max-w-lg">
+          Zadej lokalitu a obor. AI najde firmy, ohodnotí jejich potenciál a napíše
+          personalizovaný e-mail za tebe. Od hledání po oslovení za méně než 2 minuty.
+        </p>
+
+        <div class="flex flex-wrap gap-3 mb-10">
+          <a href="/index.html"
+            class="bg-amber-400 hover:bg-amber-300 text-gray-900 font-bold px-6 py-3.5 rounded-xl text-sm transition-all hover:scale-105 shadow-lg shadow-amber-400/25">
+            Začít zdarma — bez karty →
+          </a>
+          <a href="#jak-to-funguje"
+            class="border border-white/20 hover:border-white/40 text-white font-medium px-6 py-3.5 rounded-xl text-sm transition-colors">
+            Jak to funguje?
+          </a>
+        </div>
+
+        <div class="flex flex-wrap gap-6 text-sm text-gray-500">
+          <div class="flex items-center gap-1.5"><span class="text-green-400">✓</span> Žádná kreditní karta</div>
+          <div class="flex items-center gap-1.5"><span class="text-green-400">✓</span> 20 leadů zdarma</div>
+          <div class="flex items-center gap-1.5"><span class="text-green-400">✓</span> Česká data z ARES</div>
+        </div>
+      </div>
+
+      <!-- Right: app mockup -->
+      <div class="float hidden lg:block">
+        <div class="bg-gray-900 rounded-2xl border border-white/10 shadow-2xl card-glow overflow-hidden">
+          <!-- Fake browser bar -->
+          <div class="bg-gray-800 px-4 py-2.5 flex items-center gap-2 border-b border-white/5">
+            <div class="flex gap-1.5"><div class="w-3 h-3 rounded-full bg-red-500/70"></div><div class="w-3 h-3 rounded-full bg-amber-400/70"></div><div class="w-3 h-3 rounded-full bg-green-500/70"></div></div>
+            <div class="flex-1 bg-gray-700 rounded-md h-5 mx-4 text-xs text-gray-500 flex items-center px-2">leadgen.ai/app</div>
+          </div>
+          <!-- Fake app UI -->
+          <div class="p-4 space-y-2.5">
+            <!-- Stats row -->
+            <div class="grid grid-cols-3 gap-2 mb-3">
+              <div class="bg-gray-800 rounded-lg p-2.5 text-center"><div class="text-white font-bold text-lg">47</div><div class="text-gray-500 text-xs">Leadů</div></div>
+              <div class="bg-gray-800 rounded-lg p-2.5 text-center"><div class="text-amber-400 font-bold text-lg">12</div><div class="text-gray-500 text-xs">Osloveno</div></div>
+              <div class="bg-gray-800 rounded-lg p-2.5 text-center"><div class="text-green-400 font-bold text-lg">3</div><div class="text-gray-500 text-xs">Vyhráno</div></div>
+            </div>
+            <!-- Lead cards -->
+            <div class="bg-gray-800 rounded-xl p-3 border border-white/5">
+              <div class="flex justify-between items-start mb-1.5">
+                <div><div class="text-white text-sm font-semibold">KOVOTECH s.r.o.</div><div class="text-gray-500 text-xs">Brno · strojírenství</div></div>
+                <span class="bg-red-500/20 text-red-400 text-xs font-bold px-2 py-0.5 rounded-full">87 b.</span>
+              </div>
+              <div class="flex gap-1.5 mb-2">
+                <span class="bg-purple-900/50 text-purple-400 text-xs px-2 py-0.5 rounded-full">Nemá web</span>
+                <span class="bg-purple-900/50 text-purple-400 text-xs px-2 py-0.5 rounded-full">Málo recenzí</span>
+              </div>
+              <div class="bg-gray-900/80 rounded-lg p-2 text-xs text-gray-400 leading-relaxed">
+                "Dobrý den, našel jsem KOVOTECH při hledání strojírenských firem v Brně. Vidím, že zatím nemáte web..."
+              </div>
+            </div>
+            <div class="bg-gray-800 rounded-xl p-3 border border-white/5 opacity-80">
+              <div class="flex justify-between items-start mb-1.5">
+                <div><div class="text-white text-sm font-semibold">Pekárna Novák</div><div class="text-gray-500 text-xs">Praha · pekárna</div></div>
+                <span class="bg-amber-500/20 text-amber-400 text-xs font-bold px-2 py-0.5 rounded-full">62 b.</span>
+              </div>
+              <div class="flex gap-1.5">
+                <span class="bg-purple-900/50 text-purple-400 text-xs px-2 py-0.5 rounded-full">Nízké hodnocení</span>
+              </div>
+            </div>
+            <div class="bg-gray-800 rounded-xl p-3 border border-white/5 opacity-60">
+              <div class="flex justify-between items-start">
+                <div><div class="text-white text-sm font-semibold">AUTO Dvořák</div><div class="text-gray-500 text-xs">Ostrava · autoservis</div></div>
+                <span class="bg-green-500/20 text-green-400 text-xs font-bold px-2 py-0.5 rounded-full">45 b.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── TRUST BAR ─────────────────────────────────────────────────────────── -->
+<section class="bg-gray-950 border-y border-gray-800 py-8 px-4">
+  <div class="max-w-5xl mx-auto">
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
+      <div>
+        <div class="text-3xl font-black text-white mb-0.5">2 min</div>
+        <div class="text-sm text-gray-500">od hledání po draft</div>
+      </div>
+      <div>
+        <div class="text-3xl font-black text-amber-400 mb-0.5">100%</div>
+        <div class="text-sm text-gray-500">česká data z ARES</div>
+      </div>
+      <div>
+        <div class="text-3xl font-black text-white mb-0.5">6 fází</div>
+        <div class="text-sm text-gray-500">CRM pipeline</div>
+      </div>
+      <div>
+        <div class="text-3xl font-black text-purple-400 mb-0.5">AI</div>
+        <div class="text-sm text-gray-500">personalizace e-mailů</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── JAK TO FUNGUJE ─────────────────────────────────────────────────────── -->
+<section id="jak-to-funguje" class="py-24 px-4 bg-white">
+  <div class="max-w-5xl mx-auto">
+    <div class="text-center mb-16">
+      <h2 class="text-3xl sm:text-4xl font-black text-gray-900 mb-4">Od nuly k osloveným leadům<br>ve třech krocích</h2>
+      <p class="text-gray-500 max-w-xl mx-auto">Žádné složité nastavení. Za 5 minut máš první leady s připravenými e-maily.</p>
+    </div>
+
+    <div class="grid sm:grid-cols-3 gap-8 relative">
+      <!-- connector lines -->
+      <div class="hidden sm:block absolute top-10 left-1/3 right-1/3 h-0.5 bg-gradient-to-r from-purple-600 to-purple-600 z-0"></div>
+
+      <div class="relative z-10 text-center">
+        <div class="w-20 h-20 purple-gradient rounded-2xl flex items-center justify-center text-3xl mx-auto mb-5 shadow-lg shadow-purple-600/30">⚙️</div>
+        <div class="text-xs font-bold text-purple-600 uppercase tracking-widest mb-2">Krok 1</div>
+        <h3 class="text-xl font-bold text-gray-900 mb-3">Nastav profil firmy</h3>
+        <p class="text-gray-500 text-sm leading-relaxed">Popiš co nabízíš a kdo je tvůj ideální zákazník. AI použije tyto informace pro scoring a psaní e-mailů.</p>
+      </div>
+
+      <div class="relative z-10 text-center">
+        <div class="w-20 h-20 purple-gradient rounded-2xl flex items-center justify-center text-3xl mx-auto mb-5 shadow-lg shadow-purple-600/30">🔍</div>
+        <div class="text-xs font-bold text-purple-600 uppercase tracking-widest mb-2">Krok 2</div>
+        <h3 class="text-xl font-bold text-gray-900 mb-3">Spusť hledání</h3>
+        <p class="text-gray-500 text-sm leading-relaxed">Zadej lokalitu a obor. AI najde firmy přes Google, obohatí data z ARESu a ohodnotí každou skóre 0–100.</p>
+      </div>
+
+      <div class="relative z-10 text-center">
+        <div class="w-20 h-20 purple-gradient rounded-2xl flex items-center justify-center text-3xl mx-auto mb-5 shadow-lg shadow-purple-600/30">📨</div>
+        <div class="text-xs font-bold text-purple-600 uppercase tracking-widest mb-2">Krok 3</div>
+        <h3 class="text-xl font-bold text-gray-900 mb-3">Schval a oslovi</h3>
+        <p class="text-gray-500 text-sm leading-relaxed">Prohlédni leady, uprav draft e-mailu a odešli. Sleduj průběh přes CRM pipeline — od oslovení po podpis.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FUNKCE ─────────────────────────────────────────────────────────────── -->
+<section id="funkce" class="py-24 px-4 bg-slate-50">
+  <div class="max-w-5xl mx-auto">
+    <div class="text-center mb-16">
+      <h2 class="text-3xl sm:text-4xl font-black text-gray-900 mb-4">Všechno co potřebuješ<br>v jednom nástroji</h2>
+      <p class="text-gray-500 max-w-xl mx-auto">Žádné přepínání mezi Google Maps, tabulkami a e-mailovým klientem.</p>
+    </div>
+
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+
+      <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+        <div class="text-3xl mb-4">🗺️</div>
+        <h3 class="font-bold text-gray-900 mb-2">Google Places hledání</h3>
+        <p class="text-sm text-gray-500 leading-relaxed">Tisíce firem z celé ČR — restaurace, výrobní firmy, řemeslníci, profese. Filtruj podle lokality a oboru.</p>
+      </div>
+
+      <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+        <div class="text-3xl mb-4">🤖</div>
+        <h3 class="font-bold text-gray-900 mb-2">AI scoring (ICP)</h3>
+        <p class="text-sm text-gray-500 leading-relaxed">Popiš svého ideálního zákazníka. Claude AI ohodnotí každou firmu skóre 0–100 a vysvětlí proč.</p>
+      </div>
+
+      <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+        <div class="text-3xl mb-4">✉️</div>
+        <h3 class="font-bold text-gray-900 mb-2">Personalizované e-maily</h3>
+        <p class="text-sm text-gray-500 leading-relaxed">AI napíše draft za tebe — přirozený, konkrétní, podepsaný tvým jménem. Žádná klišé, žádné šablony.</p>
+      </div>
+
+      <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+        <div class="text-3xl mb-4">🏢</div>
+        <h3 class="font-bold text-gray-900 mb-2">Data z ARES</h3>
+        <p class="text-sm text-gray-500 leading-relaxed">IČO, datum vzniku, právní forma, počet zaměstnanců — automaticky doplněno z českého obchodního rejstříku.</p>
+      </div>
+
+      <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+        <div class="text-3xl mb-4">📊</div>
+        <h3 class="font-bold text-gray-900 mb-2">CRM pipeline</h3>
+        <p class="text-sm text-gray-500 leading-relaxed">6 fází: ke schválení → schváleno → osloveno → odpovědělo → schůzka → vyhráno. Poznámky a follow-up termíny.</p>
+      </div>
+
+      <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+        <div class="text-3xl mb-4">⚡</div>
+        <h3 class="font-bold text-gray-900 mb-2">Webhook integrace</h3>
+        <p class="text-sm text-gray-500 leading-relaxed">Propoj s Make.com, Zapier nebo n8n. Schválený lead automaticky přeskočí do Pipedrive, HubSpotu nebo tvého CRM.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── SROVNÁNÍ ───────────────────────────────────────────────────────────── -->
+<section class="py-20 px-4 bg-white">
+  <div class="max-w-3xl mx-auto">
+    <div class="text-center mb-12">
+      <h2 class="text-3xl font-black text-gray-900 mb-3">Ručně vs. s LeadGen AI</h2>
+      <p class="text-gray-500">Stejný výsledek — 20× rychleji.</p>
+    </div>
+
+    <div class="grid sm:grid-cols-2 gap-4">
+      <div class="bg-red-50 border border-red-100 rounded-2xl p-6">
+        <h3 class="font-bold text-red-600 mb-4 flex items-center gap-2">😤 Ručně (dnes)</h3>
+        <ul class="space-y-3 text-sm text-gray-600">
+          <li class="flex items-start gap-2"><span class="text-red-400 mt-0.5">✗</span>Google Maps — kopírování kontaktů do tabulky</li>
+          <li class="flex items-start gap-2"><span class="text-red-400 mt-0.5">✗</span>Ručně hledáš e-mail na webu</li>
+          <li class="flex items-start gap-2"><span class="text-red-400 mt-0.5">✗</span>Píšeš stejný e-mail se jménem firmy</li>
+          <li class="flex items-start gap-2"><span class="text-red-400 mt-0.5">✗</span>Sleduješ odpovědi v e-mailu nebo sticky notes</li>
+          <li class="flex items-start gap-2"><span class="text-red-400 mt-0.5">✗</span>2–3 hodiny na 10 leadů</li>
+        </ul>
+      </div>
+
+      <div class="bg-purple-50 border border-purple-200 rounded-2xl p-6">
+        <h3 class="font-bold text-purple-700 mb-4 flex items-center gap-2">🚀 S LeadGen AI</h3>
+        <ul class="space-y-3 text-sm text-gray-600">
+          <li class="flex items-start gap-2"><span class="text-green-500 mt-0.5">✓</span>AI najde a ohodnotí firmy automaticky</li>
+          <li class="flex items-start gap-2"><span class="text-green-500 mt-0.5">✓</span>E-mail scrapuje web + ARES automaticky</li>
+          <li class="flex items-start gap-2"><span class="text-green-500 mt-0.5">✓</span>Claude napíše personalizovaný draft</li>
+          <li class="flex items-start gap-2"><span class="text-green-500 mt-0.5">✓</span>CRM pipeline přímo v nástroji</li>
+          <li class="flex items-start gap-2"><span class="text-green-500 mt-0.5">✓</span>10 leadů s drafty za 2 minuty</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CENÍK ───────────────────────────────────────────────────────────────── -->
+<section id="cenik" class="py-24 px-4 bg-slate-50">
+  <div class="max-w-5xl mx-auto">
+    <div class="text-center mb-16">
+      <h2 class="text-3xl sm:text-4xl font-black text-gray-900 mb-4">Jednoduché ceny.<br>Bez překvapení.</h2>
+      <p class="text-gray-500">Začni zdarma, přejdi na placený plán až budeš chtít víc.</p>
+    </div>
+
+    <div class="grid sm:grid-cols-3 gap-6">
+
+      <!-- Start -->
+      <div class="bg-white rounded-2xl border border-gray-200 p-7 shadow-sm">
+        <div class="text-sm font-semibold text-gray-500 mb-2">Start</div>
+        <div class="text-4xl font-black text-gray-900 mb-1">Zdarma</div>
+        <div class="text-sm text-gray-400 mb-6">navždy, bez karty</div>
+        <ul class="space-y-3 text-sm text-gray-600 mb-8">
+          <li class="flex items-center gap-2"><span class="text-green-500">✓</span> 20 leadů celkem</li>
+          <li class="flex items-center gap-2"><span class="text-green-500">✓</span> Web scoring</li>
+          <li class="flex items-center gap-2"><span class="text-green-500">✓</span> E-mail drafty</li>
+          <li class="flex items-center gap-2"><span class="text-green-500">✓</span> CRM pipeline</li>
+          <li class="flex items-center gap-2"><span class="text-gray-300">—</span> <span class="text-gray-400">AI ICP scoring</span></li>
+          <li class="flex items-center gap-2"><span class="text-gray-300">—</span> <span class="text-gray-400">Webhook integrace</span></li>
+        </ul>
+        <a href="/index.html" class="block text-center border border-gray-200 hover:border-purple-400 text-gray-700 hover:text-purple-700 font-semibold py-2.5 rounded-xl text-sm transition-colors">
+          Začít zdarma
+        </a>
+      </div>
+
+      <!-- Pro (highlighted) -->
+      <div class="bg-purple-700 rounded-2xl p-7 shadow-xl shadow-purple-600/30 relative">
+        <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-400 text-gray-900 text-xs font-bold px-3 py-1 rounded-full">Nejoblíbenější</div>
+        <div class="text-sm font-semibold text-purple-200 mb-2">Pro</div>
+        <div class="text-4xl font-black text-white mb-1">990 <span class="text-xl font-medium text-purple-300">Kč</span></div>
+        <div class="text-sm text-purple-300 mb-6">měsíčně · bez závazku</div>
+        <ul class="space-y-3 text-sm text-purple-100 mb-8">
+          <li class="flex items-center gap-2"><span class="text-amber-300">✓</span> 300 leadů / měsíc</li>
+          <li class="flex items-center gap-2"><span class="text-amber-300">✓</span> Web + AI ICP scoring</li>
+          <li class="flex items-center gap-2"><span class="text-amber-300">✓</span> E-mail drafty</li>
+          <li class="flex items-center gap-2"><span class="text-amber-300">✓</span> CRM pipeline</li>
+          <li class="flex items-center gap-2"><span class="text-amber-300">✓</span> ARES obohacení dat</li>
+          <li class="flex items-center gap-2"><span class="text-amber-300">✓</span> Webhook integrace</li>
+        </ul>
+        <a href="/index.html" class="block text-center bg-amber-400 hover:bg-amber-300 text-gray-900 font-bold py-2.5 rounded-xl text-sm transition-colors">
+          Vyzkoušet Pro →
+        </a>
+      </div>
+
+      <!-- Business -->
+      <div class="bg-white rounded-2xl border border-gray-200 p-7 shadow-sm">
+        <div class="text-sm font-semibold text-gray-500 mb-2">Business</div>
+        <div class="text-4xl font-black text-gray-900 mb-1">Na míru</div>
+        <div class="text-sm text-gray-400 mb-6">pro větší týmy</div>
+        <ul class="space-y-3 text-sm text-gray-600 mb-8">
+          <li class="flex items-center gap-2"><span class="text-green-500">✓</span> Neomezené leady</li>
+          <li class="flex items-center gap-2"><span class="text-green-500">✓</span> Více uživatelů</li>
+          <li class="flex items-center gap-2"><span class="text-green-500">✓</span> Prioritní podpora</li>
+          <li class="flex items-center gap-2"><span class="text-green-500">✓</span> Vlastní onboarding</li>
+          <li class="flex items-center gap-2"><span class="text-green-500">✓</span> SLA garance</li>
+          <li class="flex items-center gap-2"><span class="text-green-500">✓</span> API přístup</li>
+        </ul>
+        <a href="mailto:martin@goldenpurple.cz" class="block text-center border border-gray-200 hover:border-purple-400 text-gray-700 hover:text-purple-700 font-semibold py-2.5 rounded-xl text-sm transition-colors">
+          Domluvit demo
+        </a>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── FAQ ────────────────────────────────────────────────────────────────── -->
+<section id="faq" class="py-24 px-4 bg-white">
+  <div class="max-w-2xl mx-auto">
+    <div class="text-center mb-12">
+      <h2 class="text-3xl font-black text-gray-900 mb-3">Časté otázky</h2>
+    </div>
+
+    <div class="space-y-3">
+
+      <div class="faq-item border border-gray-200 rounded-2xl overflow-hidden">
+        <button onclick="toggleFaq(this)" class="w-full px-6 py-5 flex items-center justify-between text-left">
+          <span class="font-semibold text-gray-800">Jsou data o firmách aktuální?</span>
+          <span class="faq-arrow text-gray-400 text-lg shrink-0 ml-4">▾</span>
+        </button>
+        <div class="faq-content px-6 pb-5 text-sm text-gray-500 leading-relaxed">
+          Firmy hledáme přes Google Places v reálném čase — vždy aktuální stav. Data z ARES (IČO, zaměstnanci, datum vzniku) jsou synchronizovaná s českým obchodním rejstříkem. E-maily scrapujeme přímo z webů firem.
+        </div>
+      </div>
+
+      <div class="faq-item border border-gray-200 rounded-2xl overflow-hidden">
+        <button onclick="toggleFaq(this)" class="w-full px-6 py-5 flex items-center justify-between text-left">
+          <span class="font-semibold text-gray-800">Jak funguje AI scoring?</span>
+          <span class="faq-arrow text-gray-400 text-lg shrink-0 ml-4">▾</span>
+        </button>
+        <div class="faq-content px-6 pb-5 text-sm text-gray-500 leading-relaxed">
+          Existují dva režimy. „Slabá online prezentace" hodnotí firmy podle webu, recenzí a hodnocení — ideální pro agentury prodávající webdesign. „Shoda s ICP" používá Claude AI — popiš svého ideálního zákazníka a AI ohodnotí každou firmu skóre 0–100 s odůvodněním.
+        </div>
+      </div>
+
+      <div class="faq-item border border-gray-200 rounded-2xl overflow-hidden">
+        <button onclick="toggleFaq(this)" class="w-full px-6 py-5 flex items-center justify-between text-left">
+          <span class="font-semibold text-gray-800">Mohu to napojit na svůj CRM?</span>
+          <span class="faq-arrow text-gray-400 text-lg shrink-0 ml-4">▾</span>
+        </button>
+        <div class="faq-content px-6 pb-5 text-sm text-gray-500 leading-relaxed">
+          Ano. V nastavení zadáš webhook URL z Make.com, Zapier nebo n8n. Při každé změně stavu leadu dostaneš data v JSONu — a dál si je předáš kam chceš: Pipedrive, HubSpot, Google Sheets nebo vlastní systém.
+        </div>
+      </div>
+
+      <div class="faq-item border border-gray-200 rounded-2xl overflow-hidden">
+        <button onclick="toggleFaq(this)" class="w-full px-6 py-5 flex items-center justify-between text-left">
+          <span class="font-semibold text-gray-800">Funguje to i mimo Českou republiku?</span>
+          <span class="faq-arrow text-gray-400 text-lg shrink-0 ml-4">▾</span>
+        </button>
+        <div class="faq-content px-6 pb-5 text-sm text-gray-500 leading-relaxed">
+          Google Places hledání funguje kdekoliv na světě. ARES obohacení dat je specifické pro ČR — pro zahraniční firmy se tato část přeskočí. E-mail drafty a AI scoring fungují v jakémkoliv jazyce.
+        </div>
+      </div>
+
+      <div class="faq-item border border-gray-200 rounded-2xl overflow-hidden">
+        <button onclick="toggleFaq(this)" class="w-full px-6 py-5 flex items-center justify-between text-left">
+          <span class="font-semibold text-gray-800">Je možné mít více uživatelů na jednom účtu?</span>
+          <span class="faq-arrow text-gray-400 text-lg shrink-0 ml-4">▾</span>
+        </button>
+        <div class="faq-content px-6 pb-5 text-sm text-gray-500 leading-relaxed">
+          Plán Pro je pro jednu firmu (workspace). Každá firma má svá data oddělená — pokud potřebuješ více uživatelů nebo firem, napiš nám na martin@goldenpurple.cz a domluvíme Business plán na míru.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA BANNER ─────────────────────────────────────────────────────────── -->
+<section class="hero-gradient py-20 px-4">
+  <div class="max-w-2xl mx-auto text-center">
+    <h2 class="text-3xl sm:text-4xl font-black text-white mb-5">
+      Začni získávat leady<br>
+      <span class="gold-gradient">ještě dnes.</span>
+    </h2>
+    <p class="text-gray-400 mb-8">20 leadů zdarma. Bez kreditní karty. Nastavení za 3 minuty.</p>
+    <a href="/index.html"
+      class="inline-block bg-amber-400 hover:bg-amber-300 text-gray-900 font-bold px-8 py-4 rounded-xl text-base transition-all hover:scale-105 shadow-lg shadow-amber-400/25">
+      Vyzkoušet LeadGen AI zdarma →
+    </a>
+  </div>
+</section>
+
+<!-- ── FOOTER ─────────────────────────────────────────────────────────────── -->
+<footer class="bg-gray-950 text-gray-500 py-10 px-4">
+  <div class="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+    <div class="flex items-center gap-2">
+      <span class="text-amber-400 font-black">◆</span>
+      <span class="text-white font-bold">LeadGen<span class="text-amber-400">.ai</span></span>
+      <span class="text-gray-600 text-sm ml-2">by Golden Purple</span>
+    </div>
+    <div class="flex gap-6 text-sm">
+      <a href="#jak-to-funguje" class="hover:text-white transition-colors">Jak to funguje</a>
+      <a href="#cenik" class="hover:text-white transition-colors">Ceník</a>
+      <a href="mailto:martin@goldenpurple.cz" class="hover:text-white transition-colors">Kontakt</a>
+      <a href="/index.html" class="hover:text-white transition-colors">Přihlásit se</a>
+    </div>
+    <div class="text-xs text-gray-600">© 2025 Golden Purple s.r.o.</div>
+  </div>
+</footer>
+
+<script>
+function toggleFaq(btn) {
+  const item = btn.closest('.faq-item');
+  const isOpen = item.classList.contains('open');
+  document.querySelectorAll('.faq-item.open').forEach(el => el.classList.remove('open'));
+  if (!isOpen) item.classList.add('open');
+}
+
+// Smooth scroll for anchor links
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const target = document.querySelector(a.getAttribute('href'));
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+});
+
+// Animate sections on scroll
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('fade-up'); });
+}, { threshold: 0.1 });
+document.querySelectorAll('section').forEach(s => observer.observe(s));
+</script>
+
+</body>
+</html>
