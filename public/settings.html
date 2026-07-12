@@ -317,6 +317,54 @@
       </select>
     </div>
 
+    <!-- Card: Nabídka (sales funnel) -->
+    <div id="nabidka" class="card card-pad mb-4 animate-fadeInUp-d3">
+      <p class="card-title">Personalizovaná nabídka</p>
+      <p class="card-desc">Každý lead dostane unikátní odkaz na stránku s nabídkou šitou na míru jejich firmě — s jejich mockupem, cenou a odpočtem.</p>
+
+      <label class="field-label mb-1">Co je zahrnuto v nabídce</label>
+      <p class="text-xs text-slate-400 mb-2">Každý řádek = jedna položka (bullet point na stránce).</p>
+      <textarea id="offer-items" rows="4" placeholder="Audit online přítomnosti
+Vizuální návrh webu
+Analýza konkurence v regionu
+Konzultace výsledků (30 min)"
+        class="field-input resize-none mb-4"></textarea>
+
+      <div class="grid sm:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label class="field-label">Přeškrtnutá cena (Kč)</label>
+          <input id="offer-price-full" type="number" placeholder="15000" class="field-input">
+          <p class="text-xs text-slate-400 mt-1">Co by to normálně stálo</p>
+        </div>
+        <div>
+          <label class="field-label">Cena akce (Kč)</label>
+          <input id="offer-price-offer" type="number" placeholder="2900" class="field-input">
+          <p class="text-xs text-slate-400 mt-1">Speciální cena v nabídce</p>
+        </div>
+      </div>
+
+      <div class="grid sm:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label class="field-label">Platnost nabídky (hodiny)</label>
+          <select id="offer-validity" class="field-input">
+            <option value="24">24 hodin</option>
+            <option value="48">48 hodin</option>
+            <option value="72" selected>72 hodin (3 dny)</option>
+            <option value="120">120 hodin (5 dní)</option>
+            <option value="168">168 hodin (7 dní)</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">Text CTA tlačítka</label>
+          <input id="offer-cta" type="text" placeholder="Mám zájem →" class="field-input">
+        </div>
+      </div>
+
+      <label class="field-label">Kontakt po kliknutí</label>
+      <input id="offer-contact" type="text" placeholder="např. martin@goldenpurple.cz nebo +420 777 123 456" class="field-input mb-2">
+      <p class="text-xs text-slate-400">Zobrazí se zákazníkovi po kliknutí na CTA.</p>
+    </div>
+
     <!-- Card: Integrace -->
     <div id="integrace" class="card card-pad mb-4 animate-fadeInUp-d3">
       <p class="card-title">Integrace</p>
@@ -503,6 +551,15 @@ function fillForm() {
     document.getElementById('msg-objection').value = m.objection || '';
     document.getElementById('msg-cta').value       = m.cta_type  || 'konzultace';
   }
+  if (workspace.offer) {
+    const o = workspace.offer;
+    document.getElementById('offer-items').value      = (o.items || []).join('\n');
+    document.getElementById('offer-price-full').value = o.price_full  || '';
+    document.getElementById('offer-price-offer').value= o.price_offer || '';
+    document.getElementById('offer-validity').value   = o.validity_hours || '72';
+    document.getElementById('offer-cta').value        = o.cta     || '';
+    document.getElementById('offer-contact').value    = o.contact || '';
+  }
 }
 
 async function saveWorkspace() {
@@ -540,6 +597,14 @@ async function saveWorkspace() {
     webhook_url: document.getElementById('ws-webhook').value.trim() || null,
     persona:     hasPersona ? persona : null,
     messaging,
+    offer: {
+      items:         document.getElementById('offer-items').value.split('\n').map(s => s.trim()).filter(Boolean),
+      price_full:    parseInt(document.getElementById('offer-price-full').value) || null,
+      price_offer:   parseInt(document.getElementById('offer-price-offer').value) || null,
+      validity_hours:parseInt(document.getElementById('offer-validity').value) || 72,
+      cta:           document.getElementById('offer-cta').value.trim() || 'Mám zájem →',
+      contact:       document.getElementById('offer-contact').value.trim() || null,
+    },
   };
 
   const btn = document.getElementById('ws-save');

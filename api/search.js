@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { requireUser } from '../lib/auth.js';
 import { enrichCompany, mapConcurrent } from '../lib/enrich.js';
+import { randomBytes } from 'crypto';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -190,8 +191,8 @@ const OPENING_STYLES = [
   (c) => `Trochu jsem se podíval na ${c.name} v ${c.location} — a říkám si, že by stálo za to se Vám ozvat.`,
   // 8 — Spolupráce v regionu
   (c) => `Pracujeme s firmami v ${c.location} a ${c.name} mi přijde jako někdo, s kým by se dalo mluvit o spolupráci.`,
-  // 11 — Rozšiřuju klientskou základnu
-  (c) => `Rozšiřuji spolupráci s firmami v oboru ${c.category} v ${c.location} a připravil jsem pro Vás konkrétní nabídku.`,
+  // 11 — Rozšiřuju klientskou základnu (s odkazem na personalizovanou nabídku)
+  (c) => `Rozšiřuji spolupráci s firmami v oboru ${c.category} v ${c.location} a připravil jsem pro ${c.name} konkrétní nabídku — odkaz přikládám níže.`,
 ];
 
 function pickOpening(company) {
@@ -201,8 +202,10 @@ function pickOpening(company) {
 
 // ── Draft e-mailu z profilu workspace ────────────────────────────────────────
 
-async function draftEmail(company, workspace, insights) {
+async function draftEmail(company, workspace, insights, offerToken) {
   const opening = pickOpening(company);
+  const hasOffer = offerToken && workspace.offer?.items?.length > 0;
+  const offerUrl = hasOffer ? `${workspace.website ? `https://${workspace.website.replace(/^https?:\/\//,'')}` : 'https://golden-purple-leadgen.vercel.app'}/nabidka/${offerToken}` : null;
 
   const companyContext = [
     company.founded ? `Firma existuje od ${company.founded.slice(0, 4)}` : null,
@@ -253,6 +256,7 @@ Pravidla:
 - Nikdy nepoužij slovo "problém" — místo toho "prostor pro zlepšení", "výzva" nebo "příležitost"
 - CTA: nabídni ${ctaPhrase}
 - Podpis: ${workspace.sender_name} / ${workspace.company_name}
+${offerUrl ? `- Na konec emailu přidej řádek: "Připravil jsem pro Vás osobní nabídku: ${offerUrl}"` : ''}
 - Nepiš předmět emailu, jen tělo`,
     }],
   });
@@ -310,10 +314,11 @@ export default async function handler(req, res) {
       ? await scoreLeadsIcp(enriched, workspace, insights)
       : enriched.map(scoreLeadWeb);
 
-    // 5) drafty paralelně
-    const withDrafts = await mapConcurrent(scored, 5, async c => ({
+    // 5) drafty paralelně (token vygenerujeme předem, aby byl v emailu)
+    const scoredWithTokens = scored.map(c => ({ ...c, _offerToken: randomBytes(16).toString('hex') }));
+    const withDrafts = await mapConcurrent(scoredWithTokens, 5, async c => ({
       ...c,
-      email_draft: await draftEmail(c, workspace, insights).catch(err => {
+      email_draft: await draftEmail(c, workspace, insights, c._offerToken).catch(err => {
         console.error('Draft error:', c.name, err.message);
         return null;
       }),
@@ -339,6 +344,7 @@ export default async function handler(req, res) {
           score: company.score,
           reasons: company.reasons,
           email_draft: company.email_draft,
+          offer_token: company._offerToken || randomBytes(16).toString('hex'),
           status: 'pending',
         })
         .select()

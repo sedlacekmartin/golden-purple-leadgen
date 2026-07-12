@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Speciální nabídka</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes fadeInUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:none; } }
+    .fadeInUp { animation: fadeInUp .5s ease both; }
+    .fadeInUp-d1 { animation-delay:.1s; }
+    .fadeInUp-d2 { animation-delay:.2s; }
+    .fadeInUp-d3 { animation-delay:.3s; }
+    .fadeInUp-d4 { animation-delay:.4s; }
+    .line-through-price { text-decoration: line-through; }
+    @keyframes pulse-ring { 0%,100%{opacity:.6;transform:scale(1);} 50%{opacity:.3;transform:scale(1.05);} }
+    .pulse-ring { animation: pulse-ring 2s ease-in-out infinite; }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 text-white">
+
+  <!-- Loading -->
+  <div id="loading" class="min-h-screen flex items-center justify-center">
+    <div class="w-8 h-8 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin"></div>
+  </div>
+
+  <!-- Error -->
+  <div id="error-screen" class="hidden min-h-screen flex items-center justify-center px-4">
+    <div class="text-center">
+      <p class="text-4xl mb-4">😕</p>
+      <h1 class="text-xl font-semibold mb-2">Nabídka nenalezena</h1>
+      <p class="text-slate-400 text-sm">Odkaz může být neplatný nebo nabídka vypršela.</p>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div id="content" class="hidden max-w-2xl mx-auto px-4 py-12">
+
+    <!-- Header -->
+    <div class="text-center mb-10 fadeInUp">
+      <p id="sender-line" class="text-purple-300 text-sm font-medium mb-3"></p>
+      <h1 class="text-3xl sm:text-4xl font-black tracking-tight mb-2">
+        Připravili jsme pro Vás<br>
+        <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-orange-400">speciální nabídku</span>
+      </h1>
+      <p id="company-line" class="text-slate-300 text-lg font-medium"></p>
+    </div>
+
+    <!-- Countdown -->
+    <div class="fadeInUp fadeInUp-d1 bg-white/5 border border-white/10 rounded-2xl p-4 mb-6 text-center">
+      <p class="text-xs text-slate-400 uppercase tracking-widest font-semibold mb-2">Nabídka platí ještě</p>
+      <div id="countdown" class="flex items-center justify-center gap-3 text-2xl font-black tabular-nums">
+        <div class="text-center"><span id="cd-h">--</span><p class="text-xs text-slate-400 font-normal mt-0.5">hod</p></div>
+        <span class="text-purple-400 mb-4">:</span>
+        <div class="text-center"><span id="cd-m">--</span><p class="text-xs text-slate-400 font-normal mt-0.5">min</p></div>
+        <span class="text-purple-400 mb-4">:</span>
+        <div class="text-center"><span id="cd-s">--</span><p class="text-xs text-slate-400 font-normal mt-0.5">sek</p></div>
+      </div>
+    </div>
+
+    <!-- Mockup -->
+    <div id="mockup-wrap" class="hidden fadeInUp fadeInUp-d1 mb-6 rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
+      <div class="bg-slate-800/60 px-4 py-2 flex items-center gap-2 border-b border-white/10">
+        <div class="flex gap-1.5"><span class="w-3 h-3 rounded-full bg-red-400/60"></span><span class="w-3 h-3 rounded-full bg-amber-400/60"></span><span class="w-3 h-3 rounded-full bg-green-400/60"></span></div>
+        <div class="flex-1 bg-slate-700/50 rounded-md px-3 py-1 text-xs text-slate-400" id="mockup-url-bar">www.vase-firma.cz</div>
+      </div>
+      <img id="mockup-img" src="" alt="Návrh webu" class="w-full block">
+    </div>
+
+    <!-- What's included -->
+    <div class="fadeInUp fadeInUp-d2 bg-white/5 border border-white/10 rounded-2xl p-6 mb-6">
+      <h2 class="text-lg font-bold mb-4">Co je zahrnuto</h2>
+      <ul id="offer-items" class="space-y-3"></ul>
+    </div>
+
+    <!-- Price -->
+    <div class="fadeInUp fadeInUp-d3 bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-400/20 rounded-2xl p-6 mb-6 text-center">
+      <p class="text-slate-400 text-sm mb-1">Běžná cena</p>
+      <p id="price-full" class="line-through-price text-slate-500 text-xl mb-3"></p>
+      <p class="text-slate-300 text-sm mb-1">Vaše speciální cena</p>
+      <p id="price-offer" class="text-5xl font-black text-amber-300 mb-1"></p>
+      <p class="text-xs text-slate-400">Cena platná pouze do vypršení odpočtu výše</p>
+    </div>
+
+    <!-- CTA -->
+    <div class="fadeInUp fadeInUp-d4 text-center">
+      <button id="cta-btn" onclick="handleCta()"
+        class="inline-flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-black font-black text-lg rounded-2xl shadow-lg shadow-amber-500/20 transition-all hover:scale-105 active:scale-95 pulse-ring">
+        <span id="cta-label">Mám zájem →</span>
+      </button>
+      <p id="cta-after" class="hidden mt-6 text-center">
+        <span class="text-green-400 text-lg font-bold block mb-2">✓ Přijato!</span>
+        <span class="text-slate-300 text-sm" id="contact-info"></span>
+      </p>
+    </div>
+
+    <!-- Footer -->
+    <div class="mt-16 text-center text-xs text-slate-600">
+      <p id="footer-sender"></p>
+    </div>
+
+  </div>
+
+<script>
+const token = location.pathname.split('/').pop() || new URLSearchParams(location.search).get('t');
+let offerData = null;
+
+async function init() {
+  if (!token) { showError(); return; }
+
+  try {
+    const res = await fetch(`/api/offer?token=${token}`);
+    if (!res.ok) { showError(); return; }
+    offerData = await res.json();
+    render(offerData);
+  } catch(e) {
+    showError();
+  }
+}
+
+function showError() {
+  document.getElementById('loading').classList.add('hidden');
+  document.getElementById('error-screen').classList.remove('hidden');
+}
+
+function fmt(n) {
+  if (!n) return '';
+  return n.toLocaleString('cs-CZ') + ' Kč';
+}
+
+function render(d) {
+  document.title = `Nabídka pro ${d.company}`;
+
+  document.getElementById('sender-line').textContent = `${d.sender.name} · ${d.sender.company}`;
+  document.getElementById('company-line').textContent = `${d.company}, ${d.location}`;
+
+  // Mockup
+  if (d.mockup_url?.startsWith('data:image') || d.mockup_url?.startsWith('http')) {
+    const wrap = document.getElementById('mockup-wrap');
+    wrap.classList.remove('hidden');
+    document.getElementById('mockup-img').src = d.mockup_url;
+    document.getElementById('mockup-url-bar').textContent = d.sender.website || 'www.vase-firma.cz';
+  }
+
+  // Items
+  document.getElementById('offer-items').innerHTML = (d.offer.items || []).map(item => `
+    <li class="flex items-start gap-3">
+      <span class="text-amber-400 font-bold shrink-0 mt-0.5">✓</span>
+      <span class="text-slate-200">${item}</span>
+    </li>`).join('');
+
+  // Prices
+  if (d.offer.price_full)  document.getElementById('price-full').textContent  = fmt(d.offer.price_full);
+  if (d.offer.price_offer) document.getElementById('price-offer').textContent = fmt(d.offer.price_offer);
+
+  // CTA
+  document.getElementById('cta-label').textContent = d.offer.cta || 'Mám zájem →';
+
+  // Footer
+  document.getElementById('footer-sender').textContent =
+    `Nabídku připravil/a ${d.sender.name} · ${d.sender.company}${d.sender.website ? ' · ' + d.sender.website : ''}`;
+
+  // Countdown
+  startCountdown(new Date(d.offer.valid_until));
+
+  document.getElementById('loading').classList.add('hidden');
+  document.getElementById('content').classList.remove('hidden');
+}
+
+function startCountdown(until) {
+  function tick() {
+    const diff = Math.max(0, until - Date.now());
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    document.getElementById('cd-h').textContent = String(h).padStart(2, '0');
+    document.getElementById('cd-m').textContent = String(m).padStart(2, '0');
+    document.getElementById('cd-s').textContent = String(s).padStart(2, '0');
+    if (diff > 0) setTimeout(tick, 1000);
+  }
+  tick();
+}
+
+async function handleCta() {
+  const btn = document.getElementById('cta-btn');
+  btn.disabled = true;
+  btn.classList.add('opacity-60');
+  try {
+    const res = await fetch(`/api/offer?token=${token}`, { method: 'POST' });
+    const data = await res.json();
+    btn.classList.add('hidden');
+    const after = document.getElementById('cta-after');
+    after.classList.remove('hidden');
+    if (data.contact) {
+      document.getElementById('contact-info').textContent = `Ozveme se Vám na: ${data.contact}`;
+    }
+  } catch(e) {
+    btn.disabled = false;
+    btn.classList.remove('opacity-60');
+  }
+}
+
+init();
+</script>
+</body>
+</html>
