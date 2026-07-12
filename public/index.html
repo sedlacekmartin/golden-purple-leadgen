@@ -6,36 +6,36 @@
   <title>Golden Purple — Lead-gen</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="/app.css">
+  <script>
+    // Před vykreslením — dark mode + sbalený sidebar z localStorage (žádný flash)
+    try {
+      if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && matchMedia('(prefers-color-scheme: dark)').matches)) document.documentElement.classList.add('dark');
+      if (localStorage.getItem('sb-collapsed') === '1') document.documentElement.classList.add('sb-collapsed');
+    } catch (e) {}
+  </script>
   <style>
-    @keyframes spin { to { transform: rotate(360deg); } }
-    @keyframes slideUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-    .spin { animation: spin 0.8s linear infinite; }
-    .slide-up { animation: slideUp 0.18s ease; }
     details.card-sec > summary { list-style: none; }
     details.card-sec > summary::-webkit-details-marker { display: none; }
     details.card-sec > summary .chev { transition: transform 0.15s; }
     details.card-sec[open] > summary .chev { transform: rotate(90deg); }
-    .snav { display: flex; align-items: center; gap: 0.625rem; padding: 0.5rem 0.75rem; border-radius: 0.75rem; font-size: 13.5px; font-weight: 500; width: 100%; color: #475569; transition: background 0.15s, color 0.15s; cursor: pointer; text-align: left; background: none; border: none; }
-    .snav:hover { background: #f8fafc; color: #0f172a; }
-    .snav.active { background: #fef3c7; color: #92400e; font-weight: 600; }
-    .snav-icon { width: 26px; height: 26px; border-radius: 7px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
   </style>
 </head>
-<body class="bg-slate-50 min-h-screen">
+<body class="min-h-screen">
 
 <!-- ── SIDEBAR ──────────────────────────────────────────────────────────────── -->
 <div id="sidebar-backdrop" class="hidden fixed inset-0 bg-black/40 z-40 md:hidden" onclick="closeSidebar()"></div>
 
-<nav id="sidebar" class="fixed top-0 left-0 h-full w-56 bg-white border-r border-slate-100 flex flex-col z-50 -translate-x-full md:translate-x-0 transition-transform duration-200 shadow-sm">
+<nav id="sidebar" class="fixed top-0 left-0 h-full w-56 bg-white border-r border-slate-100 flex flex-col z-50 -translate-x-full md:translate-x-0 transition-all duration-200 overflow-hidden shadow-sm">
 
   <!-- Logo + Company -->
   <div class="px-4 py-4 border-b border-slate-100 shrink-0">
-    <div class="flex items-center gap-2 mb-2.5">
+    <div class="flex items-center gap-2 mb-2.5 sb-center">
       <span class="text-amber-400 font-bold text-lg">◆</span>
-      <span class="font-bold text-slate-900 text-[14px] tracking-tight">LeadGen.ai</span>
+      <span class="font-bold text-slate-900 text-[14px] tracking-tight sb-hide">LeadGen.ai</span>
     </div>
-    <p id="header-company" class="text-xs font-semibold text-slate-700 truncate mb-2">—</p>
-    <span class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-500">Free plán</span>
+    <p id="header-company" class="text-xs font-semibold text-slate-700 truncate mb-2 sb-hide">—</p>
+    <span class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-500 sb-hide">Free plán</span>
   </div>
 
   <!-- Nav -->
@@ -45,21 +45,21 @@
       <span class="snav-icon" style="background:#fef3c7;color:#b45309">
         <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/></svg>
       </span>
-      Leady
+      <span class="sb-hide">Leady</span>
     </button>
 
     <button class="snav" onclick="toggleAnalytics();closeSidebar()">
       <span class="snav-icon" style="background:#f0fdf4;color:#059669">
         <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>
       </span>
-      Analytika
+      <span class="sb-hide">Analytika</span>
     </button>
 
     <button class="snav" onclick="exportCsv();closeSidebar()">
       <span class="snav-icon" style="background:#eff6ff;color:#2563eb">
         <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
       </span>
-      Export CSV
+      <span class="sb-hide">Export CSV</span>
     </button>
 
     <div class="my-2 border-t border-slate-100"></div>
@@ -68,218 +68,67 @@
       <span class="snav-icon" style="background:#f1f5f9;color:#475569">
         <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
       </span>
-      Nastavení
+      <span class="sb-hide">Nastavení</span>
     </a>
 
     <button id="admin-link" onclick="showView('admin')" class="hidden snav">
       <span class="snav-icon" style="background:#fef9c3;color:#a16207">
         <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
       </span>
-      Admin
+      <span class="sb-hide">Admin</span>
     </button>
 
+  </div>
+
+  <!-- Dark mode toggle -->
+  <div class="px-2 pb-2 shrink-0">
+    <button onclick="toggleDark()" class="snav">
+      <span class="snav-icon" id="dark-toggle-icon">🌙</span>
+      <span class="sb-hide" id="dark-toggle-label">Tmavý režim</span>
+    </button>
   </div>
 
   <!-- User footer -->
   <div class="px-4 py-4 border-t border-slate-100 shrink-0">
-    <div class="flex items-center gap-2.5 mb-3">
+    <div class="flex items-center gap-2.5 mb-3 sb-center">
       <div id="user-avatar" class="w-7 h-7 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-black font-black text-xs shrink-0">?</div>
-      <div class="min-w-0">
+      <div class="min-w-0 sb-hide">
         <p id="user-email-display" class="text-[11px] font-bold text-slate-700 truncate">—</p>
         <p class="text-[11px] text-slate-400">Vlastník</p>
       </div>
     </div>
-    <button onclick="logout()" class="w-full text-left text-xs text-slate-400 hover:text-red-500 transition-colors py-0.5">Odhlásit se</button>
+    <button onclick="logout()" class="w-full text-left text-xs text-slate-400 hover:text-red-500 transition-colors py-0.5 sb-hide">Odhlásit se</button>
   </div>
 </nav>
 
+<!-- Desktop collapse toggle — edge button -->
+<button id="sb-toggle" onclick="toggleCollapse()" aria-label="Sbalit / rozbalit menu"></button>
+
 <!-- ── AUTH SCREEN ─────────────────────────────────────────────────────────── -->
 <div id="auth-screen" class="hidden fixed inset-0 bg-slate-100 z-40 flex items-center justify-center p-4">
-  <div class="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 w-full max-w-sm">
+  <div class="card shadow-xl p-8 w-full max-w-sm animate-fadeInUp">
     <div class="flex items-center gap-2.5 justify-center mb-6">
       <span class="text-amber-400 font-bold text-2xl">◆</span>
-      <span class="font-bold text-xl tracking-tight text-purple-900">Lead-gen</span>
+      <span class="font-bold text-xl tracking-tight text-gradient">LeadGen.ai</span>
     </div>
-    <div id="auth-title" class="text-center text-sm text-gray-400 mb-5">Přihlas se ke svému účtu</div>
+    <div id="auth-title" class="text-center text-sm text-slate-400 mb-5">Přihlas se ke svému účtu</div>
 
     <input id="auth-email" type="email" placeholder="E-mail" autocomplete="email"
-      class="w-full bg-slate-50 rounded-lg px-3 py-2.5 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-purple-400 mb-2">
+      class="field-input mb-2">
     <input id="auth-password" type="password" placeholder="Heslo (min. 6 znaků)" autocomplete="current-password"
-      class="w-full bg-slate-50 rounded-lg px-3 py-2.5 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-purple-400 mb-4"
+      class="field-input mb-4"
       onkeydown="if(event.key==='Enter')authSubmit()">
 
     <button id="auth-submit" onclick="authSubmit()"
-      class="w-full bg-purple-700 hover:bg-purple-800 disabled:opacity-60 text-white py-2.5 rounded-lg text-sm font-semibold transition-colors mb-3">
+      class="btn-primary w-full py-2.5 text-sm mb-3">
       Přihlásit se
     </button>
 
-    <div class="text-center text-xs text-gray-400">
+    <div class="text-center text-xs text-slate-400">
       <span id="auth-switch-text">Nemáš účet?</span>
       <button onclick="toggleAuthMode()" id="auth-switch-btn" class="text-purple-600 font-medium hover:underline">Registruj se</button>
     </div>
     <div id="auth-error" class="hidden text-center text-xs text-red-500 mt-3"></div>
-  </div>
-</div>
-
-<!-- ── ONBOARDING / NASTAVENÍ ──────────────────────────────────────────────── -->
-<div id="ws-modal" class="hidden fixed inset-0 bg-black/50 z-40 flex items-start justify-center p-4 overflow-y-auto">
-  <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 my-6 max-h-none">
-    <h2 id="ws-title" class="font-bold text-lg text-gray-800 mb-1">Nastavení firmy</h2>
-    <p class="text-xs text-gray-400 mb-5">Tyhle údaje řídí, jak agent píše e-maily a hodnotí leady.</p>
-
-    <label class="text-xs text-gray-400 font-medium mb-1 block">Název firmy *</label>
-    <input id="ws-company" type="text" placeholder="např. KOVOTECH s.r.o."
-      class="w-full bg-slate-50 rounded-lg px-3 py-2.5 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-purple-400 mb-3">
-
-    <div class="grid grid-cols-2 gap-3">
-      <div>
-        <label class="text-xs text-gray-400 font-medium mb-1 block">Jméno odesílatele *</label>
-        <input id="ws-sender" type="text" placeholder="např. Martin"
-          class="w-full bg-slate-50 rounded-lg px-3 py-2.5 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-purple-400 mb-3">
-      </div>
-      <div>
-        <label class="text-xs text-gray-400 font-medium mb-1 block">Web firmy</label>
-        <input id="ws-website" type="text" placeholder="např. kovotech.cz"
-          class="w-full bg-slate-50 rounded-lg px-3 py-2.5 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-purple-400 mb-3">
-      </div>
-    </div>
-
-    <label class="text-xs text-gray-400 font-medium mb-1 block">Co nabízíte? *</label>
-    <textarea id="ws-pitch" rows="2" placeholder="např. CNC obrábění kovů na zakázku, malé a střední série"
-      class="w-full bg-slate-50 rounded-lg px-3 py-2.5 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-purple-400 resize-none mb-4"></textarea>
-
-    <label class="text-xs text-gray-400 font-medium mb-2 block">Jak hodnotit leady?</label>
-    <div class="space-y-2 mb-3">
-      <label class="flex items-start gap-2.5 p-3 rounded-xl border border-gray-200 cursor-pointer has-[:checked]:border-purple-400 has-[:checked]:bg-purple-50/50 transition-colors">
-        <input type="radio" name="ws-mode" value="web" checked class="accent-purple-600 mt-0.5">
-        <span>
-          <span class="text-sm font-medium text-gray-700 block">Slabá online prezentace</span>
-          <span class="text-xs text-gray-400">Pro agentury prodávající weby a marketing — vysoké skóre = firma bez webu / recenzí</span>
-        </span>
-      </label>
-      <label class="flex items-start gap-2.5 p-3 rounded-xl border border-gray-200 cursor-pointer has-[:checked]:border-purple-400 has-[:checked]:bg-purple-50/50 transition-colors">
-        <input type="radio" name="ws-mode" value="icp" class="accent-purple-600 mt-0.5">
-        <span>
-          <span class="text-sm font-medium text-gray-700 block">Shoda s ideálním zákazníkem (AI)</span>
-          <span class="text-xs text-gray-400">Popiš svého ideálního zákazníka a AI ohodnotí každou firmu podle shody</span>
-        </span>
-      </label>
-    </div>
-
-    <div id="ws-icp-wrap" class="hidden">
-
-      <!-- Persona builder -->
-      <div class="bg-gradient-to-br from-purple-50 to-slate-50 border border-purple-100 rounded-2xl p-4 mb-3">
-        <div class="flex items-center gap-2 mb-3">
-          <div id="persona-avatar" class="w-10 h-10 bg-purple-200 rounded-full flex items-center justify-center text-xl select-none">👤</div>
-          <div class="flex-1 min-w-0">
-            <input id="p-name" type="text" placeholder="Jméno persony, např. Martin Strojař"
-              oninput="updatePersonaAvatar()"
-              class="w-full bg-white rounded-lg px-3 py-1.5 text-sm font-semibold border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400 mb-0.5">
-            <div class="text-xs text-gray-400">Vymyslené jméno — pomůže ti ji lépe vnímat jako reálnou osobu</div>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-2 mb-2">
-          <div>
-            <label class="text-xs text-gray-500 mb-0.5 block">Role / pozice</label>
-            <select id="p-role" class="w-full bg-white rounded-lg px-2 py-1.5 text-sm border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400">
-              <option value="">— vyber —</option>
-              <option>Majitel / jednatel</option>
-              <option>Obchodní ředitel</option>
-              <option>Výrobní ředitel</option>
-              <option>Nákupní ředitel</option>
-              <option>IT ředitel / CTO</option>
-              <option>Marketing manager</option>
-              <option>Provozní ředitel</option>
-              <option>Jiné</option>
-            </select>
-          </div>
-          <div>
-            <label class="text-xs text-gray-500 mb-0.5 block">Věk</label>
-            <select id="p-age" class="w-full bg-white rounded-lg px-2 py-1.5 text-sm border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400">
-              <option value="">— vyber —</option>
-              <option>25–35</option>
-              <option>35–45</option>
-              <option>45–55</option>
-              <option>55+</option>
-            </select>
-          </div>
-          <div>
-            <label class="text-xs text-gray-500 mb-0.5 block">Velikost firmy</label>
-            <select id="p-size" class="w-full bg-white rounded-lg px-2 py-1.5 text-sm border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400">
-              <option value="">— vyber —</option>
-              <option>1–10 zaměstnanců</option>
-              <option>10–50 zaměstnanců</option>
-              <option>50–200 zaměstnanců</option>
-              <option>200+ zaměstnanců</option>
-            </select>
-          </div>
-          <div>
-            <label class="text-xs text-gray-500 mb-0.5 block">Obor / odvětví</label>
-            <input id="p-industry" type="text" placeholder="např. strojírenství, IT, stavebnictví"
-              class="w-full bg-white rounded-lg px-2 py-1.5 text-sm border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400">
-          </div>
-        </div>
-
-        <div class="mb-2">
-          <label class="text-xs text-gray-500 font-medium mb-1 block">😤 Hlavní problémy / bolesti</label>
-          <div class="space-y-1.5">
-            <input id="p-pain1" type="text" placeholder="např. nemá čas řešit marketing"
-              class="w-full bg-white rounded-lg px-3 py-1.5 text-sm border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400">
-            <input id="p-pain2" type="text" placeholder="např. hledá nové zákazníky mimo doporučení"
-              class="w-full bg-white rounded-lg px-3 py-1.5 text-sm border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400">
-            <input id="p-pain3" type="text" placeholder="např. zastaralý web nebo žádný"
-              class="w-full bg-white rounded-lg px-3 py-1.5 text-sm border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400">
-          </div>
-        </div>
-
-        <div class="mb-3">
-          <label class="text-xs text-gray-500 font-medium mb-1 block">🎯 Co chce dosáhnout</label>
-          <div class="space-y-1.5">
-            <input id="p-goal1" type="text" placeholder="např. stabilní přísun nových zakázek"
-              class="w-full bg-white rounded-lg px-3 py-1.5 text-sm border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400">
-            <input id="p-goal2" type="text" placeholder="např. vypadat profesionálně online"
-              class="w-full bg-white rounded-lg px-3 py-1.5 text-sm border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400">
-          </div>
-        </div>
-
-        <button type="button" onclick="generateIcpFromPersona()" id="persona-gen-btn"
-          class="w-full bg-purple-700 hover:bg-purple-800 disabled:opacity-60 text-white text-sm font-bold py-2 rounded-xl transition-colors flex items-center justify-center gap-2">
-          <span>🪄</span> Vygenerovat scoring popis z persony
-        </button>
-      </div>
-
-      <!-- Výsledný ICP text pro AI scoring -->
-      <div class="mb-1 flex items-center justify-between">
-        <label class="text-xs text-gray-400 font-medium">Scoring popis (pro AI)</label>
-        <span class="text-xs text-gray-300">Automaticky doplněno — můžeš upravit</span>
-      </div>
-      <textarea id="ws-icp" rows="3" placeholder="Vygeneruj popis z persony výše, nebo napiš ručně…"
-        class="w-full bg-slate-50 rounded-lg px-3 py-2.5 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-purple-400 resize-none mb-3"></textarea>
-    </div>
-
-    <details class="mb-4">
-      <summary class="text-xs text-gray-400 font-medium cursor-pointer hover:text-gray-600 select-none">⚙ Integrace (Make.com / Zapier webhook)</summary>
-      <div class="mt-2">
-        <input id="ws-webhook" type="url" placeholder="https://hook.eu1.make.com/..."
-          class="w-full bg-slate-50 rounded-lg px-3 py-2.5 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-purple-400">
-        <p class="text-xs text-gray-400 mt-1">Při každé změně stavu leadu pošleme data na tuto URL.</p>
-      </div>
-    </details>
-
-    <div id="ws-error" class="hidden text-xs text-red-500 mb-3"></div>
-
-    <div class="flex gap-2 mt-2">
-      <button onclick="saveWorkspace()" id="ws-save"
-        class="flex-1 bg-purple-700 hover:bg-purple-800 disabled:opacity-60 text-white py-2.5 rounded-lg text-sm font-semibold transition-colors">
-        Uložit
-      </button>
-      <button onclick="closeWsModal()" id="ws-cancel"
-        class="px-4 border border-gray-200 hover:bg-gray-50 text-gray-500 py-2.5 rounded-lg text-sm transition-colors">
-        Zrušit
-      </button>
-    </div>
   </div>
 </div>
 
@@ -302,7 +151,7 @@
 <main class="md:ml-56 min-h-screen px-4 py-5 sm:px-6 sm:py-7">
 
   <!-- Page header (desktop only) -->
-  <div class="hidden md:flex items-start justify-between gap-4 mb-6">
+  <div class="hidden md:flex items-start justify-between gap-4 mb-6 animate-fadeInUp">
     <div>
       <h1 id="page-title" class="text-[24px] font-semibold tracking-tight text-slate-900">Leady</h1>
       <p id="page-date" class="mt-0.5 text-[13px] text-slate-400 capitalize"></p>
@@ -315,7 +164,7 @@
   <div id="leads-view">
 
   <!-- Stats -->
-  <div id="stats" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4"></div>
+  <div id="stats" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4 animate-fadeInUp-d1"></div>
 
   <!-- Analytics funnel (toggle) -->
   <div class="flex justify-end mb-3">
@@ -324,36 +173,36 @@
       📊 Detailní přehled ▾
     </button>
   </div>
-  <div id="analytics-panel" class="hidden bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-6">
+  <div id="analytics-panel" class="hidden card p-5 mb-6">
     <div class="grid md:grid-cols-2 gap-6">
       <div>
-        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Konverzní funnel</h3>
+        <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">Konverzní funnel</h3>
         <div id="funnel-bars" class="space-y-2"></div>
       </div>
       <div>
-        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Top kategorie</h3>
+        <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">Top kategorie</h3>
         <div id="cat-stats" class="space-y-1.5"></div>
       </div>
     </div>
   </div>
 
-  <div class="lg:grid lg:grid-cols-[300px_1fr] lg:gap-6 lg:items-start">
+  <div class="lg:grid lg:grid-cols-[300px_1fr] lg:gap-6 lg:items-start animate-fadeInUp-d2">
 
     <!-- ── SIDEBAR ─────────────────────────────────────────────────────────── -->
     <aside class="space-y-4 mb-6 lg:mb-0 lg:sticky lg:top-20">
 
       <!-- Search -->
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-        <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Nové hledání</h2>
+      <div class="card p-4">
+        <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">Nové hledání</h2>
 
-        <label class="text-xs text-gray-400 font-medium mb-1 block">Lokalita</label>
+        <label class="text-xs text-slate-400 font-medium mb-1 block">Lokalita</label>
         <input id="inp-location" type="text" placeholder="např. Třebíč" value="Třebíč"
-          class="w-full bg-slate-50 rounded-lg px-3 py-2.5 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-purple-400 mb-3">
+          class="field-input mb-3">
 
         <!-- Web režim: kategorie chipy -->
         <div id="search-web-ui">
           <div class="flex items-center justify-between mb-1">
-            <label class="text-xs text-gray-400 font-medium">Kategorie <span id="cat-count" class="text-purple-500 font-bold"></span></label>
+            <label class="text-xs text-slate-400 font-medium">Kategorie <span id="cat-count" class="text-purple-500 font-bold"></span></label>
             <button onclick="toggleAllCategories()" id="btn-all-cats"
               class="text-xs text-purple-500 hover:text-purple-700 font-medium transition-colors">Vše</button>
           </div>
@@ -362,48 +211,48 @@
 
         <!-- ICP/AI režim: volný dotaz -->
         <div id="search-icp-ui" class="hidden">
-          <label class="text-xs text-gray-400 font-medium mb-1 block">Jaký typ firem hledáš?</label>
+          <label class="text-xs text-slate-400 font-medium mb-1 block">Jaký typ firem hledáš?</label>
           <input id="inp-icp-query" type="text" placeholder="např. výrobní firmy, strojírny, plastikárny"
-            class="w-full bg-slate-50 rounded-lg px-3 py-2.5 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-purple-400 mb-1">
-          <p class="text-xs text-gray-400 mb-3">Napiš obor nebo typ firem. AI pak posoudí, jak každá sedí na tvůj ICP.</p>
+            class="field-input mb-1">
+          <p class="text-xs text-slate-400 mb-3">Napiš obor nebo typ firem. AI pak posoudí, jak každá sedí na tvůj ICP.</p>
         </div>
 
-        <label class="text-xs text-gray-400 font-medium mb-1 block">Počet výsledků (max 50)</label>
+        <label class="text-xs text-slate-400 font-medium mb-1 block">Počet výsledků (max 50)</label>
         <input id="inp-limit" type="number" placeholder="10" value="10" min="1" max="50"
-          class="w-full bg-slate-50 rounded-lg px-3 py-2.5 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-purple-400 mb-4">
+          class="field-input mb-4">
 
         <button id="search-btn" onclick="runSearch()"
-          class="w-full bg-purple-700 hover:bg-purple-800 disabled:opacity-60 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 justify-center">
+          class="btn-primary w-full px-5 py-2.5 text-sm flex items-center gap-2 justify-center">
           <span id="search-spinner" class="hidden w-4 h-4 border-2 border-white/30 border-t-white rounded-full spin"></span>
           <span id="search-label">🔍 Hledat leady</span>
         </button>
       </div>
 
       <!-- Filters -->
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <div class="card p-4">
         <div class="flex items-center justify-between mb-3">
-          <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Filtry</h2>
-          <button onclick="clearFilters()" class="text-xs text-gray-400 hover:text-gray-600 transition-colors">Zrušit</button>
+          <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Filtry</h2>
+          <button onclick="clearFilters()" class="text-xs text-slate-400 hover:text-slate-600 transition-colors">Zrušit</button>
         </div>
 
         <div class="flex items-center gap-2 mb-3">
-          <label class="text-xs text-gray-400 font-medium whitespace-nowrap flex-1">Min. skóre</label>
+          <label class="text-xs text-slate-400 font-medium whitespace-nowrap flex-1">Min. skóre</label>
           <input id="f-score" type="number" value="0" min="0" max="100" oninput="resetPage();render()"
-            class="w-16 bg-slate-50 rounded-lg px-2 py-1.5 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-purple-400 text-center">
+            class="field-input w-16 px-2 py-1.5 text-center">
         </div>
 
         <div class="flex flex-col gap-2 mb-3">
           <label class="flex items-center gap-1.5 cursor-pointer select-none">
             <input id="f-email" type="checkbox" onchange="resetPage();render()" class="accent-purple-600 w-3.5 h-3.5">
-            <span class="text-xs text-gray-500">Jen s e-mailem</span>
+            <span class="text-xs text-slate-500">Jen s e-mailem</span>
           </label>
           <label class="flex items-center gap-1.5 cursor-pointer select-none">
             <input id="f-draft" type="checkbox" onchange="resetPage();render()" class="accent-purple-600 w-3.5 h-3.5">
-            <span class="text-xs text-gray-500">Jen s draftem</span>
+            <span class="text-xs text-slate-500">Jen s draftem</span>
           </label>
           <label class="flex items-center gap-1.5 cursor-pointer select-none">
             <input id="f-followup" type="checkbox" onchange="resetPage();render()" class="accent-purple-600 w-3.5 h-3.5">
-            <span class="text-xs text-gray-500">⏰ Follow-up dnes a dřív</span>
+            <span class="text-xs text-slate-500">⏰ Follow-up dnes a dřív</span>
           </label>
         </div>
 
@@ -412,17 +261,17 @@
       </div>
 
       <!-- Scoring legend -->
-      <details class="bg-white rounded-2xl shadow-sm border border-gray-100">
-        <summary class="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-widest cursor-pointer select-none hover:text-gray-600 transition-colors">
+      <details class="card">
+        <summary class="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-widest cursor-pointer select-none hover:text-slate-600 transition-colors">
           Jak funguje skórování?
         </summary>
         <div class="px-4 pb-4 space-y-2 text-xs">
-          <div class="flex justify-between gap-2"><span class="text-gray-600">Nemá web</span><span class="bg-red-100 text-red-700 font-bold px-2 py-0.5 rounded-full shrink-0">+40</span></div>
-          <div class="flex justify-between gap-2"><span class="text-gray-600">Málo recenzí (&lt;20)</span><span class="bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full shrink-0">+25</span></div>
-          <div class="flex justify-between gap-2"><span class="text-gray-600">Nízké hodnocení (&lt;3.5★)</span><span class="bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full shrink-0">+20</span></div>
-          <div class="flex justify-between gap-2"><span class="text-gray-600">Podprůměr recenzí (20–50)</span><span class="bg-gray-100 text-gray-600 font-bold px-2 py-0.5 rounded-full shrink-0">+10</span></div>
-          <div class="flex justify-between gap-2"><span class="text-gray-600">Dobré hodnocení (&gt;4.3★)</span><span class="bg-green-100 text-green-700 font-bold px-2 py-0.5 rounded-full shrink-0">+5</span></div>
-          <p class="text-gray-300 pt-1">Skóre &gt;60 červené · 35–60 oranžové · méně zelené</p>
+          <div class="flex justify-between gap-2"><span class="text-slate-600">Nemá web</span><span class="bg-red-100 text-red-700 font-bold px-2 py-0.5 rounded-full shrink-0">+40</span></div>
+          <div class="flex justify-between gap-2"><span class="text-slate-600">Málo recenzí (&lt;20)</span><span class="bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full shrink-0">+25</span></div>
+          <div class="flex justify-between gap-2"><span class="text-slate-600">Nízké hodnocení (&lt;3.5★)</span><span class="bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full shrink-0">+20</span></div>
+          <div class="flex justify-between gap-2"><span class="text-slate-600">Podprůměr recenzí (20–50)</span><span class="bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-full shrink-0">+10</span></div>
+          <div class="flex justify-between gap-2"><span class="text-slate-600">Dobré hodnocení (&gt;4.3★)</span><span class="bg-green-100 text-green-700 font-bold px-2 py-0.5 rounded-full shrink-0">+5</span></div>
+          <p class="text-slate-300 pt-1">Skóre &gt;60 červené · 35–60 oranžové · méně zelené</p>
         </div>
       </details>
 
@@ -433,9 +282,9 @@
 
       <!-- Pipeline tabs + bulk toggle -->
       <div class="flex items-center gap-3 mb-4 flex-wrap">
-        <div id="tabs" class="flex gap-1 bg-gray-200/70 p-1 rounded-xl flex-wrap"></div>
+        <div id="tabs" class="flex gap-1 bg-slate-200/70 p-1 rounded-xl flex-wrap"></div>
         <button onclick="toggleSelectMode()" id="select-mode-btn"
-          class="text-xs px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-500 hover:border-purple-300 hover:text-purple-600 font-medium transition-colors">
+          class="text-xs px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:border-purple-300 hover:text-purple-600 font-medium transition-colors">
           ☑ Vybrat
         </button>
       </div>
@@ -446,11 +295,11 @@
       <!-- Pagination -->
       <div id="pagination" class="hidden items-center justify-between py-6">
         <button id="pg-prev" onclick="changePage(-1)"
-          class="px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm text-gray-500 hover:bg-gray-50 disabled:opacity-30 transition-colors">← Předchozí</button>
+          class="px-4 py-2 rounded-xl border border-slate-200 bg-white text-sm text-slate-500 hover:bg-slate-50 disabled:opacity-30 transition-colors">← Předchozí</button>
         <div class="flex items-center gap-3">
-          <span id="pg-info" class="text-xs text-gray-400"></span>
+          <span id="pg-info" class="text-xs text-slate-400"></span>
           <select id="pg-size" onchange="changePageSize(this.value)"
-            class="bg-white rounded-lg px-2 py-1.5 text-xs border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-400 text-gray-500">
+            class="bg-white rounded-lg px-2 py-1.5 text-xs border border-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-400 text-slate-500">
             <option value="10" selected>10 / str.</option>
             <option value="25">25 / str.</option>
             <option value="50">50 / str.</option>
@@ -458,7 +307,7 @@
           </select>
         </div>
         <button id="pg-next" onclick="changePage(1)"
-          class="px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm text-gray-500 hover:bg-gray-50 disabled:opacity-30 transition-colors">Další →</button>
+          class="px-4 py-2 rounded-xl border border-slate-200 bg-white text-sm text-slate-500 hover:bg-slate-50 disabled:opacity-30 transition-colors">Další →</button>
       </div>
 
     </section>
@@ -471,19 +320,19 @@
 
     <!-- Global KPI -->
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-      <div class="bg-white rounded-[12px] border border-slate-100 px-5 py-4">
+      <div class="card px-5 py-4">
         <div id="a-workspaces" class="text-[30px] font-semibold tracking-tight text-slate-900">—</div>
         <div class="text-[13px] font-medium text-slate-700 mt-0.5">Firem celkem</div>
       </div>
-      <div class="bg-white rounded-[12px] border border-slate-100 px-5 py-4">
+      <div class="card px-5 py-4">
         <div id="a-active" class="text-[30px] font-semibold tracking-tight text-purple-700">—</div>
         <div class="text-[13px] font-medium text-slate-700 mt-0.5">Aktivní tento týden</div>
       </div>
-      <div class="bg-white rounded-[12px] border border-slate-100 px-5 py-4">
+      <div class="card px-5 py-4">
         <div id="a-leads" class="text-[30px] font-semibold tracking-tight text-amber-500">—</div>
         <div class="text-[13px] font-medium text-slate-700 mt-0.5">Leadů celkem</div>
       </div>
-      <div class="bg-white rounded-[12px] border border-slate-100 px-5 py-4">
+      <div class="card px-5 py-4">
         <div id="a-won" class="text-[30px] font-semibold tracking-tight text-green-600">—</div>
         <div class="text-[13px] font-medium text-slate-700 mt-0.5">Vyhráno</div>
       </div>
@@ -495,19 +344,19 @@
     </div>
 
     <!-- Workspaces table -->
-    <div id="admin-table-wrap" class="hidden bg-white rounded-[12px] border border-slate-100 overflow-hidden">
-      <div class="px-5 py-4 flex items-center justify-between" style="border-bottom:1px solid #f1f5f9">
+    <div id="admin-table-wrap" class="hidden card overflow-hidden">
+      <div class="px-5 py-4 flex items-center justify-between" style="border-bottom:1px solid var(--color-surface-warm)">
         <div>
           <h2 class="text-[15px] font-semibold text-slate-900">Firmy</h2>
           <p class="text-[12px] text-slate-400 mt-0.5">Klikni na řádek pro detail</p>
         </div>
         <input id="admin-search" type="text" placeholder="Hledat…" oninput="filterAdminTable()"
-          class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 w-44">
+          class="field-input w-44 px-3 py-1.5">
       </div>
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
-            <tr class="text-[11px] uppercase tracking-[0.1em] text-slate-400" style="background:#f8fafc">
+            <tr class="text-[11px] uppercase tracking-[0.1em] text-slate-400" style="background:var(--color-surface)">
               <th class="px-5 py-3 text-left font-medium">Firma</th>
               <th class="px-4 py-3 text-left font-medium">E-mail</th>
               <th class="px-4 py-3 text-left font-medium">Režim</th>
@@ -526,7 +375,7 @@
     </div>
 
     <!-- Detail panel -->
-    <div id="admin-detail" class="hidden bg-white rounded-[12px] border border-slate-100 p-5">
+    <div id="admin-detail" class="hidden card p-5">
       <div class="flex items-center justify-between mb-5">
         <h3 id="admin-detail-title" class="text-[15px] font-semibold text-slate-900"></h3>
         <button onclick="closeAdminDetail()" class="text-slate-400 hover:text-slate-700 text-sm transition-colors">✕ Zavřít</button>
@@ -549,14 +398,14 @@
         <div class="text-center mb-2">
           <span class="bg-red-500/20 text-red-300 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest">Teď</span>
         </div>
-        <div id="before-wrap" class="rounded-xl overflow-hidden border border-white/10 bg-gray-900 min-h-48 flex items-center justify-center">
+        <div id="before-wrap" class="rounded-xl overflow-hidden border border-white/10 bg-slate-900 min-h-48 flex items-center justify-center">
           <img id="before-img" src="" alt="Aktuální web" class="w-full hidden">
           <div id="before-nosite" class="hidden text-center py-16 px-6">
             <div class="text-5xl mb-3">🌐</div>
-            <div class="text-gray-400 text-sm">Firma nemá web</div>
-            <div class="text-gray-600 text-xs mt-1">Ideální příležitost</div>
+            <div class="text-slate-400 text-sm">Firma nemá web</div>
+            <div class="text-slate-600 text-xs mt-1">Ideální příležitost</div>
           </div>
-          <div id="before-loading" class="text-gray-500 text-sm">Načítám screenshot…</div>
+          <div id="before-loading" class="text-slate-500 text-sm">Načítám screenshot…</div>
         </div>
       </div>
 
@@ -565,9 +414,9 @@
         <div class="text-center mb-2">
           <span class="bg-green-500/20 text-green-300 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest">S tvojí pomocí</span>
         </div>
-        <div class="rounded-xl overflow-hidden border border-white/10 bg-gray-900 min-h-48 flex items-center justify-center">
+        <div class="rounded-xl overflow-hidden border border-white/10 bg-slate-900 min-h-48 flex items-center justify-center">
           <img id="mockup-img" src="" alt="Návrh webu" class="w-full hidden">
-          <div id="after-loading" class="text-gray-500 text-sm">Generuji AI návrh…</div>
+          <div id="after-loading" class="text-slate-500 text-sm">Generuji AI návrh…</div>
         </div>
       </div>
     </div>
@@ -586,7 +435,7 @@
 </div>
 
 <!-- Bulk action bar -->
-<div id="bulk-bar" class="hidden fixed bottom-0 inset-x-0 z-40 bg-gray-900 text-white px-4 py-3 flex items-center justify-between gap-3 shadow-2xl">
+<div id="bulk-bar" class="hidden fixed bottom-0 inset-x-0 z-40 bg-slate-900 text-white px-4 py-3 flex items-center justify-between gap-3 shadow-2xl">
   <span id="bulk-count" class="text-sm font-semibold"></span>
   <div class="flex gap-2">
     <button onclick="bulkApprove()"
@@ -594,11 +443,11 @@
       ✓ Schválit vše
     </button>
     <button onclick="bulkSkip()"
-      class="bg-gray-600 hover:bg-gray-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+      class="bg-slate-600 hover:bg-slate-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
       Přeskočit vše
     </button>
     <button onclick="toggleSelectMode()"
-      class="text-gray-400 hover:text-white text-sm px-3 py-2 rounded-lg transition-colors">
+      class="text-slate-400 hover:text-white text-sm px-3 py-2 rounded-lg transition-colors">
       Zrušit
     </button>
   </div>
@@ -689,160 +538,6 @@ async function initWorkspace() {
   }
 }
 
-function openWsModal(onboarding = false) {
-  document.getElementById('ws-title').textContent = onboarding ? 'Vítej! Nastav si firmu' : 'Nastavení firmy';
-  document.getElementById('ws-cancel').classList.toggle('hidden', onboarding);
-  if (workspace) {
-    document.getElementById('ws-company').value = workspace.company_name || '';
-    document.getElementById('ws-sender').value = workspace.sender_name || '';
-    document.getElementById('ws-website').value = workspace.website || '';
-    document.getElementById('ws-pitch').value = workspace.pitch || '';
-    document.getElementById('ws-icp').value = workspace.icp || '';
-    document.getElementById('ws-webhook').value = workspace.webhook_url || '';
-    fillPersonaForm(workspace.persona);
-    document.querySelector(`input[name="ws-mode"][value="${workspace.scoring_mode || 'web'}"]`).checked = true;
-  }
-  syncIcpVisibility();
-  document.getElementById('ws-modal').classList.remove('hidden');
-  document.body.style.overflow = 'hidden';
-}
-
-function closeWsModal() {
-  document.getElementById('ws-modal').classList.add('hidden');
-  document.body.style.overflow = '';
-}
-
-function syncIcpVisibility() {
-  const mode = document.querySelector('input[name="ws-mode"]:checked')?.value;
-  document.getElementById('ws-icp-wrap').classList.toggle('hidden', mode !== 'icp');
-}
-
-// ── Persona builder ──────────────────────────────────────────────────────────
-
-const ROLE_AVATARS = {
-  'Majitel / jednatel': '👔', 'Obchodní ředitel': '🤝', 'Výrobní ředitel': '🏭',
-  'Nákupní ředitel': '📦', 'IT ředitel / CTO': '💻', 'Marketing manager': '📣',
-  'Provozní ředitel': '⚙️', 'Jiné': '👤',
-};
-
-function updatePersonaAvatar() {
-  const role = document.getElementById('p-role')?.value;
-  const avatar = ROLE_AVATARS[role] || '👤';
-  const el = document.getElementById('persona-avatar');
-  if (el) el.textContent = avatar;
-}
-document.addEventListener('change', e => { if (e.target.id === 'p-role') updatePersonaAvatar(); });
-
-function getPersonaFromForm() {
-  return {
-    name:     document.getElementById('p-name')?.value.trim() || '',
-    role:     document.getElementById('p-role')?.value || '',
-    age:      document.getElementById('p-age')?.value || '',
-    size:     document.getElementById('p-size')?.value || '',
-    industry: document.getElementById('p-industry')?.value.trim() || '',
-    pain1:    document.getElementById('p-pain1')?.value.trim() || '',
-    pain2:    document.getElementById('p-pain2')?.value.trim() || '',
-    pain3:    document.getElementById('p-pain3')?.value.trim() || '',
-    goal1:    document.getElementById('p-goal1')?.value.trim() || '',
-    goal2:    document.getElementById('p-goal2')?.value.trim() || '',
-  };
-}
-
-function fillPersonaForm(p) {
-  if (!p) return;
-  const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
-  set('p-name', p.name); set('p-role', p.role); set('p-age', p.age);
-  set('p-size', p.size); set('p-industry', p.industry);
-  set('p-pain1', p.pain1); set('p-pain2', p.pain2); set('p-pain3', p.pain3);
-  set('p-goal1', p.goal1); set('p-goal2', p.goal2);
-  updatePersonaAvatar();
-}
-
-async function generateIcpFromPersona() {
-  const persona = getPersonaFromForm();
-  if (!persona.industry && !persona.pain1) {
-    toast('Vyplň alespoň obor a jeden problém', true); return;
-  }
-  const btn = document.getElementById('persona-gen-btn');
-  btn.innerHTML = '<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full inline-block" style="animation:spin .8s linear infinite"></span> Generuji…';
-  btn.disabled = true;
-  try {
-    const res = await authFetch('/api/generate-icp', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        persona,
-        company: document.getElementById('ws-company').value.trim(),
-        pitch:   document.getElementById('ws-pitch').value.trim(),
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Chyba');
-    document.getElementById('ws-icp').value = data.icp;
-    toast('Scoring popis vygenerován ✓');
-  } catch(e) {
-    toast(e.message, true);
-  } finally {
-    btn.innerHTML = '<span>🪄</span> Vygenerovat scoring popis z persony';
-    btn.disabled = false;
-  }
-}
-document.addEventListener('change', e => { if (e.target.name === 'ws-mode') syncIcpVisibility(); });
-
-async function saveWorkspace() {
-  const company_name = document.getElementById('ws-company').value.trim();
-  const sender_name = document.getElementById('ws-sender').value.trim();
-  const pitch = document.getElementById('ws-pitch').value.trim();
-  const scoring_mode = document.querySelector('input[name="ws-mode"]:checked')?.value || 'web';
-  const icp = document.getElementById('ws-icp').value.trim();
-  const errEl = document.getElementById('ws-error');
-
-  if (!company_name || !sender_name || !pitch) {
-    errEl.textContent = 'Vyplň název firmy, jméno odesílatele a co nabízíte.';
-    errEl.classList.remove('hidden');
-    return;
-  }
-  if (scoring_mode === 'icp' && !icp) {
-    errEl.textContent = 'Pro AI režim popiš svého ideálního zákazníka.';
-    errEl.classList.remove('hidden');
-    return;
-  }
-  errEl.classList.add('hidden');
-
-  const persona = getPersonaFromForm();
-  const hasPersona = Object.values(persona).some(v => v);
-  const fields = {
-    company_name, sender_name, pitch, scoring_mode,
-    icp: icp || null,
-    website: document.getElementById('ws-website').value.trim() || null,
-    webhook_url: document.getElementById('ws-webhook').value.trim() || null,
-    persona: hasPersona ? persona : null,
-  };
-
-  const btn = document.getElementById('ws-save');
-  btn.disabled = true;
-  try {
-    const { data: { user } } = await sb.auth.getUser();
-    const { data, error } = workspace
-      ? await sb.from('workspaces').update(fields).eq('id', workspace.id).select().single()
-      : await sb.from('workspaces').insert({ ...fields, owner: user.id }).select().single();
-    if (error) throw error;
-    workspace = data;
-    updateSearchUI();
-    document.getElementById('header-company').textContent = workspace.company_name;
-    const mc = document.getElementById('mobile-company');
-    if (mc) mc.textContent = workspace.company_name;
-    closeWsModal();
-    toast('Profil uložen ✓');
-    await loadLeads();
-  } catch (e) {
-    errEl.textContent = e.message;
-    errEl.classList.remove('hidden');
-  } finally {
-    btn.disabled = false;
-  }
-}
-
 // ── Pipeline ──────────────────────────────────────────────────────────────────
 
 const TABS = [
@@ -851,7 +546,7 @@ const TABS = [
   { key: 'contacted', label: 'Osloveno',     badge: 'bg-amber-100 text-amber-600' },
   { key: 'replied',   label: 'Odpověděl',    badge: 'bg-teal-100 text-teal-600' },
   { key: 'meeting',   label: 'Schůzka',      badge: 'bg-indigo-100 text-indigo-600' },
-  { key: 'closed',    label: 'Uzavřeno',     badge: 'bg-gray-200 text-gray-500' },
+  { key: 'closed',    label: 'Uzavřeno',     badge: 'bg-slate-200 text-slate-500' },
 ];
 
 let activeTab = 'pending';
@@ -1145,9 +840,9 @@ function renderStats() {
   const rate = contacted ? Math.round(replied / contacted * 100) : null;
 
   const stat = (label, value, accent = '') => `
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-3">
-      <div class="text-2xl font-bold ${accent || 'text-gray-800'}">${value}</div>
-      <div class="text-xs text-gray-400 mt-0.5">${label}</div>
+    <div class="card px-4 py-4">
+      <div class="text-[26px] leading-9 font-semibold tracking-tight ${accent || 'text-slate-900'}">${value}</div>
+      <div class="text-[13px] font-medium text-slate-700 mt-0.5">${label}</div>
     </div>`;
   document.getElementById('stats').innerHTML =
     stat('Leadů celkem', all.length) +
@@ -1179,13 +874,13 @@ function renderFunnel(count, all) {
     const pct = Math.round(n / max * 100);
     return `
       <div class="flex items-center gap-2">
-        <div class="w-24 text-xs text-gray-500 text-right shrink-0">${s.label}</div>
-        <div class="flex-1 bg-gray-100 rounded-full h-5 relative overflow-hidden">
+        <div class="w-24 text-xs text-slate-500 text-right shrink-0">${s.label}</div>
+        <div class="flex-1 bg-slate-100 rounded-full h-5 relative overflow-hidden">
           <div class="${s.color} h-full rounded-full transition-all" style="width:${pct}%"></div>
         </div>
         <div class="w-14 text-right shrink-0">
-          <span class="text-sm font-bold text-gray-700">${n}</span>
-          ${conv !== null ? `<span class="text-xs text-gray-400 ml-1">${conv}%</span>` : ''}
+          <span class="text-sm font-bold text-slate-700">${n}</span>
+          ${conv !== null ? `<span class="text-xs text-slate-400 ml-1">${conv}%</span>` : ''}
         </div>
       </div>`;
   }).join('');
@@ -1199,13 +894,13 @@ function renderFunnel(count, all) {
   document.getElementById('cat-stats').innerHTML = sorted.length
     ? sorted.map(([cat, n]) => `
         <div class="flex items-center gap-2">
-          <div class="w-28 text-xs text-gray-500 truncate shrink-0">${esc(cat)}</div>
-          <div class="flex-1 bg-gray-100 rounded-full h-3 overflow-hidden">
+          <div class="w-28 text-xs text-slate-500 truncate shrink-0">${esc(cat)}</div>
+          <div class="flex-1 bg-slate-100 rounded-full h-3 overflow-hidden">
             <div class="bg-purple-300 h-full rounded-full" style="width:${Math.round(n/catMax*100)}%"></div>
           </div>
-          <div class="text-xs font-semibold text-gray-600 w-5 text-right shrink-0">${n}</div>
+          <div class="text-xs font-semibold text-slate-600 w-5 text-right shrink-0">${n}</div>
         </div>`).join('')
-    : '<p class="text-xs text-gray-300">Zatím žádná data.</p>';
+    : '<p class="text-xs text-slate-300">Zatím žádná data.</p>';
 }
 
 let analyticsOpen = false;
@@ -1227,7 +922,7 @@ function toggleSelectMode() {
   btn.textContent = selectMode ? '✕ Zrušit výběr' : '☑ Vybrat';
   btn.className = selectMode
     ? 'text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors bg-purple-700 text-white border-purple-700'
-    : 'text-xs px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-500 hover:border-purple-300 hover:text-purple-600 font-medium transition-colors';
+    : 'text-xs px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:border-purple-300 hover:text-purple-600 font-medium transition-colors';
   document.getElementById('bulk-bar').classList.add('hidden');
   render();
 }
@@ -1273,7 +968,7 @@ function renderTabs() {
     const n = getTabLeads(t.key).length;
     const active = t.key === activeTab;
     return `<button onclick="switchTab('${t.key}')"
-      class="px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${active ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}">
+      class="px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${active ? 'bg-white text-purple-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}">
       ${t.label}&thinsp;<span class="text-xs ${t.badge} px-1.5 py-0.5 rounded-full font-bold">${n || ''}</span>
     </button>`;
   }).join('');
@@ -1323,7 +1018,7 @@ function renderFilterUI() {
     const active = activeReasons.has(r);
     return `<button onclick="toggleReason('${r.replace(/'/g,"&#39;")}')"
       class="text-xs px-2.5 py-1 rounded-full border transition-all font-medium
-        ${active ? 'bg-purple-700 text-white border-purple-700' : 'bg-white text-gray-500 border-gray-200 hover:border-purple-300 hover:text-purple-600'}">
+        ${active ? 'bg-purple-700 text-white border-purple-700' : 'bg-white text-slate-500 border-slate-200 hover:border-purple-300 hover:text-purple-600'}">
       ${esc(REASON_SHORT[r] || r)}
     </button>`;
   }).join('');
@@ -1333,7 +1028,7 @@ function renderFilterUI() {
     const active = activeCatFilter.has(c);
     return `<button onclick="toggleCatFilter('${c.replace(/'/g,"&#39;")}')"
       class="text-xs px-2.5 py-1 rounded-full border transition-all
-        ${active ? 'bg-gray-700 text-white border-gray-700' : 'bg-white text-gray-400 border-gray-200 hover:border-gray-400 hover:text-gray-600'}">
+        ${active ? 'bg-slate-700 text-white border-slate-700' : 'bg-white text-slate-400 border-slate-200 hover:border-slate-400 hover:text-slate-600'}">
       ${esc(c)}
     </button>`;
   }).join('');
@@ -1414,20 +1109,20 @@ function actionButtons(lead) {
   const mockupBtn = `<button onclick="showMockup('${lead.id}', this)"
     class="border border-purple-200 hover:bg-purple-50 text-purple-600 px-3 py-2 rounded-xl text-sm font-medium transition-colors whitespace-nowrap">🎨 Návrh webu</button>`;
   const copyBtn = `<button onclick="copyDraft('${lead.id}')"
-    class="border border-gray-200 hover:bg-gray-50 text-gray-500 px-3 py-2 rounded-xl text-sm font-medium transition-colors">📋</button>`;
+    class="border border-slate-200 hover:bg-slate-50 text-slate-500 px-3 py-2 rounded-xl text-sm font-medium transition-colors">📋</button>`;
   const followUp = `<input type="date" value="${lead.follow_up || ''}" onchange="saveFollowUp('${lead.id}', this.value)"
     title="Datum follow-upu"
-    class="border border-gray-200 rounded-xl px-2 py-2 text-xs text-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-400">`;
+    class="border border-slate-200 rounded-xl px-2 py-2 text-xs text-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-400">`;
 
   switch (lead.status) {
     case 'pending': return `
-      <button onclick="approve('${lead.id}')" class="flex-1 bg-purple-700 hover:bg-purple-800 text-white py-2 rounded-xl text-sm font-semibold transition-colors">✓ Schválit</button>
-      <button onclick="skip('${lead.id}')" class="flex-1 border border-gray-200 hover:bg-gray-50 text-gray-500 py-2 rounded-xl text-sm font-medium transition-colors">Přeskočit</button>
+      <button onclick="approve('${lead.id}')" class="btn-primary flex-1 py-2 text-sm">✓ Schválit</button>
+      <button onclick="skip('${lead.id}')" class="flex-1 border border-slate-200 hover:bg-slate-50 text-slate-500 py-2 rounded-xl text-sm font-medium transition-colors">Přeskočit</button>
       ${mockupBtn}`;
     case 'approved': return `
       <button onclick="markContacted('${lead.id}')" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white py-2 rounded-xl text-sm font-semibold transition-colors">📨 Osloveno</button>
       ${copyBtn}
-      <button onclick="moveTo('${lead.id}','pending','Vráceno ke schválení')" class="border border-gray-200 hover:bg-red-50 hover:text-red-400 text-gray-400 px-3 py-2 rounded-xl text-sm transition-colors">Vrátit</button>
+      <button onclick="moveTo('${lead.id}','pending','Vráceno ke schválení')" class="border border-slate-200 hover:bg-red-50 hover:text-red-400 text-slate-400 px-3 py-2 rounded-xl text-sm transition-colors">Vrátit</button>
       ${mockupBtn}`;
     case 'contacted': {
       const fuDue = lead.followup_due_at && new Date(lead.followup_due_at) <= new Date();
@@ -1447,18 +1142,18 @@ function actionButtons(lead) {
     case 'replied': return `
       <button onclick="moveTo('${lead.id}','meeting','Schůzka domluvena 🤝')" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-xl text-sm font-semibold transition-colors">🤝 Schůzka</button>
       <button onclick="moveTo('${lead.id}','won','Gratuluju! 🏆')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors">🏆 Vyhráno</button>
-      <button onclick="moveTo('${lead.id}','lost','Škoda, příště 🤷')" class="border border-gray-200 hover:bg-gray-50 text-gray-500 px-3 py-2 rounded-xl text-sm transition-colors">✖ Prohráno</button>
+      <button onclick="moveTo('${lead.id}','lost','Škoda, příště 🤷')" class="border border-slate-200 hover:bg-slate-50 text-slate-500 px-3 py-2 rounded-xl text-sm transition-colors">✖ Prohráno</button>
       ${followUp}`;
     case 'meeting': return `
       <button onclick="moveTo('${lead.id}','won','Gratuluju! 🏆')" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-xl text-sm font-semibold transition-colors">🏆 Vyhráno</button>
-      <button onclick="moveTo('${lead.id}','lost','Škoda, příště 🤷')" class="flex-1 border border-gray-200 hover:bg-gray-50 text-gray-500 py-2 rounded-xl text-sm transition-colors">✖ Prohráno</button>
+      <button onclick="moveTo('${lead.id}','lost','Škoda, příště 🤷')" class="flex-1 border border-slate-200 hover:bg-slate-50 text-slate-500 py-2 rounded-xl text-sm transition-colors">✖ Prohráno</button>
       ${followUp}`;
     case 'won': return `
       <span class="flex-1 flex items-center text-sm text-green-600 font-semibold">🏆 Vyhráno</span>
-      <button onclick="moveTo('${lead.id}','meeting','Vráceno do jednání')" class="border border-gray-200 hover:bg-gray-50 text-gray-400 px-3 py-2 rounded-xl text-sm transition-colors">Vrátit</button>`;
+      <button onclick="moveTo('${lead.id}','meeting','Vráceno do jednání')" class="border border-slate-200 hover:bg-slate-50 text-slate-400 px-3 py-2 rounded-xl text-sm transition-colors">Vrátit</button>`;
     case 'lost': return `
-      <span class="flex-1 flex items-center text-sm text-gray-400 font-medium">✖ Prohráno</span>
-      <button onclick="moveTo('${lead.id}','contacted','Vráceno mezi oslovené')" class="border border-gray-200 hover:bg-gray-50 text-gray-400 px-3 py-2 rounded-xl text-sm transition-colors">Zkusit znovu</button>`;
+      <span class="flex-1 flex items-center text-sm text-slate-400 font-medium">✖ Prohráno</span>
+      <button onclick="moveTo('${lead.id}','contacted','Vráceno mezi oslovené')" class="border border-slate-200 hover:bg-slate-50 text-slate-400 px-3 py-2 rounded-xl text-sm transition-colors">Zkusit znovu</button>`;
     default: return '';
   }
 }
@@ -1473,7 +1168,7 @@ function render() {
 
   if (!filtered.length) {
     const [icon, text] = EMPTY_TEXT[activeTab] || ['📂', 'Nic tu není.'];
-    el.innerHTML = `<div class="text-center py-16 text-gray-400 text-sm bg-white rounded-2xl border border-gray-100">
+    el.innerHTML = `<div class="text-center py-16 text-slate-400 text-sm card">
       <div class="text-4xl mb-2">${icon}</div>${text}
     </div>`;
     return;
@@ -1482,7 +1177,7 @@ function render() {
   el.innerHTML = list.map(lead => {
     const isPending = lead.status === 'pending';
     return `
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 slide-up" id="card-${lead.id}">
+    <div class="card p-4 slide-up" id="card-${lead.id}">
 
       <div class="flex items-start justify-between gap-3 mb-1.5">
         <div class="flex items-start gap-2.5 min-w-0">
@@ -1490,8 +1185,8 @@ function render() {
             onclick="toggleSelect('${lead.id}')"
             class="mt-1 w-4 h-4 accent-purple-600 shrink-0 cursor-pointer">` : ''}
           <div class="min-w-0">
-            <div class="font-semibold text-gray-800 truncate">${esc(lead.company)}</div>
-            <div class="text-xs text-gray-400 mt-0.5">${[lead.location, lead.category].filter(Boolean).map(esc).join(' · ')}</div>
+            <div class="font-semibold text-slate-800 truncate">${esc(lead.company)}</div>
+            <div class="text-xs text-slate-400 mt-0.5">${[lead.location, lead.category].filter(Boolean).map(esc).join(' · ')}</div>
           </div>
         </div>
         <div class="flex items-center gap-1.5 shrink-0">
@@ -1508,9 +1203,9 @@ function render() {
         ${lead.ico        ? `<span class="text-xs bg-slate-100 text-slate-400 px-2 py-0.5 rounded-full">IČO ${esc(lead.ico)}</span>` : ''}
       </div>
 
-      <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400 mb-3">
+      <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-400 mb-3">
         ${lead.email   ? `<a href="mailto:${esc(lead.email)}" class="text-purple-600 font-medium hover:underline">✉️ ${esc(lead.email)}</a>`
-                       : `<span class="text-gray-300">✉️ E-mail nenalezen</span>`}
+                       : `<span class="text-slate-300">✉️ E-mail nenalezen</span>`}
         ${lead.phone   ? `<span>📞 ${esc(lead.phone)}</span>` : ''}
         ${lead.website ? `<a href="${esc(lead.website)}" target="_blank" class="text-purple-500 hover:underline">🌐 ${esc(lead.website).replace(/^https?:\/\/(www\.)?/,'').slice(0,40)}</a>`
                        : `<span>🌐 Nemá web</span>`}
@@ -1518,36 +1213,36 @@ function render() {
 
       <details class="card-sec bg-slate-50 rounded-xl mb-2" ${isPending ? 'open' : ''}>
         <summary class="px-3 py-2 cursor-pointer select-none flex items-center gap-2">
-          <span class="chev text-gray-400 text-xs">▶</span>
-          <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide flex-1">Draft e-mailu</span>
+          <span class="chev text-slate-400 text-xs">▶</span>
+          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wide flex-1">Draft e-mailu</span>
           ${isPending ? `<button id="edit-btn-${lead.id}" onclick="event.preventDefault();event.stopPropagation();toggleEdit('${lead.id}')"
             class="text-xs text-purple-500 hover:text-purple-700 font-medium">Upravit</button>` : ''}
         </summary>
         <div class="px-3 pb-3">
-          <div id="view-${lead.id}" class="text-sm text-gray-600 whitespace-pre-line leading-relaxed">${esc(lead.email_draft)}</div>
-          <textarea id="ta-${lead.id}" class="hidden w-full text-sm text-gray-700 bg-white border border-purple-200 rounded-lg p-2 mt-1 resize-none focus:outline-none focus:ring-2 focus:ring-purple-400 leading-relaxed" rows="7">${esc(lead.email_draft)}</textarea>
+          <div id="view-${lead.id}" class="text-sm text-slate-600 whitespace-pre-line leading-relaxed">${esc(lead.email_draft)}</div>
+          <textarea id="ta-${lead.id}" class="hidden w-full text-sm text-slate-700 bg-white border border-purple-200 rounded-lg p-2 mt-1 resize-none focus:outline-none focus:ring-2 focus:ring-purple-400 leading-relaxed" rows="7">${esc(lead.email_draft)}</textarea>
         </div>
       </details>
 
       <details class="card-sec bg-amber-50/60 rounded-xl mb-2" ${lead.notes ? 'open' : ''}>
         <summary class="px-3 py-2 cursor-pointer select-none flex items-center gap-2">
-          <span class="chev text-gray-400 text-xs">▶</span>
-          <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">📝 Poznámky${lead.notes ? ' •' : ''}</span>
+          <span class="chev text-slate-400 text-xs">▶</span>
+          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wide">📝 Poznámky${lead.notes ? ' •' : ''}</span>
         </summary>
         <div class="px-3 pb-3">
           <textarea onblur="saveNotes('${lead.id}', this.value)" placeholder="Napiš si poznámku… (uloží se automaticky)"
-            class="w-full text-sm text-gray-700 bg-white border border-amber-200 rounded-lg p-2 resize-none focus:outline-none focus:ring-2 focus:ring-amber-400 leading-relaxed" rows="2">${esc(lead.notes)}</textarea>
+            class="w-full text-sm text-slate-700 bg-white border border-amber-200 rounded-lg p-2 resize-none focus:outline-none focus:ring-2 focus:ring-amber-400 leading-relaxed" rows="2">${esc(lead.notes)}</textarea>
         </div>
       </details>
 
       ${lead.followup_draft ? `
       <details class="card-sec bg-teal-50/60 rounded-xl mb-2" open>
         <summary class="px-3 py-2 cursor-pointer select-none flex items-center gap-2">
-          <span class="chev text-gray-400 text-xs">▶</span>
+          <span class="chev text-slate-400 text-xs">▶</span>
           <span class="text-xs font-semibold text-teal-600 uppercase tracking-wide">✉️ Follow-up #${lead.followup_count || 1} — připraven k odeslání</span>
         </summary>
         <div class="px-3 pb-3">
-          <div class="text-sm text-gray-600 whitespace-pre-line leading-relaxed bg-white border border-teal-100 rounded-lg p-2">${esc(lead.followup_draft)}</div>
+          <div class="text-sm text-slate-600 whitespace-pre-line leading-relaxed bg-white border border-teal-100 rounded-lg p-2">${esc(lead.followup_draft)}</div>
         </div>
       </details>` : ''}
 
@@ -1562,7 +1257,7 @@ let toastTimer;
 function toast(msg, isError = false) {
   const el = document.getElementById('toast');
   el.textContent = msg;
-  el.className = `${isError ? 'bg-red-800' : 'bg-gray-900'} text-white text-sm px-5 py-2.5 rounded-full shadow-xl`;
+  el.className = `${isError ? 'bg-red-800' : 'bg-slate-900'} text-white text-sm px-5 py-2.5 rounded-full shadow-xl`;
   el.classList.remove('hidden');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.add('hidden'), 2800);
@@ -1591,7 +1286,7 @@ function renderChips() {
     const active = selectedCats.has(cat);
     return `<button onclick="toggleCat('${cat}')"
       class="text-xs px-2.5 py-1 rounded-full border transition-all font-medium
-        ${active ? 'bg-purple-700 text-white border-purple-700' : 'bg-white text-gray-500 border-gray-200 hover:border-purple-300 hover:text-purple-600'}">
+        ${active ? 'bg-purple-700 text-white border-purple-700' : 'bg-white text-slate-500 border-slate-200 hover:border-purple-300 hover:text-purple-600'}">
       ${cat}
     </button>`;
   }).join('');
@@ -1629,6 +1324,28 @@ function closeSidebar() {
   document.getElementById('sidebar-backdrop').classList.add('hidden');
 }
 
+// ── Dark mode & sbalitelný sidebar ────────────────────────────────────────────
+
+function toggleDark() {
+  const dark = document.documentElement.classList.toggle('dark');
+  try { localStorage.setItem('theme', dark ? 'dark' : 'light'); } catch (e) {}
+  syncDarkToggle();
+}
+
+function syncDarkToggle() {
+  const dark = document.documentElement.classList.contains('dark');
+  const icon = document.getElementById('dark-toggle-icon');
+  const label = document.getElementById('dark-toggle-label');
+  if (icon) icon.textContent = dark ? '☀️' : '🌙';
+  if (label) label.textContent = dark ? 'Světlý režim' : 'Tmavý režim';
+}
+syncDarkToggle();
+
+function toggleCollapse() {
+  const collapsed = document.documentElement.classList.toggle('sb-collapsed');
+  try { localStorage.setItem('sb-collapsed', collapsed ? '1' : '0'); } catch (e) {}
+}
+
 // ── View switching ────────────────────────────────────────────────────────────
 
 let currentView = 'leads';
@@ -1651,6 +1368,9 @@ function showView(name) {
 
   const refreshBtn = document.getElementById('page-refresh');
   if (refreshBtn) refreshBtn.onclick = isAdmin ? loadAdmin : loadLeads;
+
+  // deep-link: /app#admin otevře admin view (odkazy z jiných stránek)
+  history.replaceState(null, '', isAdmin ? '#admin' : location.pathname);
 
   if (isAdmin) loadAdmin();
 }
@@ -1725,7 +1445,7 @@ function renderAdminTable(list) {
       ? '<span class="bg-purple-100 text-purple-700 text-xs px-2 py-0.5 rounded-full font-medium">AI</span>'
       : '<span class="bg-slate-100 text-slate-500 text-xs px-2 py-0.5 rounded-full font-medium">Web</span>';
 
-    return `<tr class="hover:bg-slate-50 cursor-pointer transition-colors align-middle" style="border-top:1px solid #f8fafc" onclick="showAdminDetail('${ws.id}')">
+    return `<tr class="hover:bg-slate-50 cursor-pointer transition-colors align-middle" style="border-top:1px solid var(--color-surface-warm)" onclick="showAdminDetail('${ws.id}')">
       <td class="px-5 py-3">
         <div class="flex items-center">${dot}<span class="font-medium text-slate-900 text-[13px]">${adminEsc(ws.company_name)}</span></div>
         <div class="text-[12px] text-slate-400 ml-3.5 mt-0.5">${adminEsc(ws.sender_name)}</div>
@@ -1816,6 +1536,11 @@ function closeAdminDetail() {
   if (dateEl) dateEl.textContent = new Date().toLocaleDateString('cs-CZ', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
   await initWorkspace();
+
+  // deep-link: /app#admin (např. z admin odkazu v nastavení)
+  if (location.hash === '#admin' && !document.getElementById('admin-link').classList.contains('hidden')) {
+    showView('admin');
+  }
 })();
 
 sb.auth.onAuthStateChange((_event, s) => { if (s) session = s; });

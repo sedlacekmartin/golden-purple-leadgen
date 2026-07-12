@@ -6,30 +6,30 @@
   <title>Admin — LeadGen AI</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .spin { animation: spin 0.8s linear infinite; }
-    .snav { display: flex; align-items: center; gap: 0.625rem; padding: 0.5rem 0.75rem; border-radius: 0.75rem; font-size: 13.5px; font-weight: 500; width: 100%; color: #475569; transition: background 0.15s, color 0.15s; cursor: pointer; text-align: left; background: none; border: none; text-decoration: none; }
-    .snav:hover { background: #f8fafc; color: #0f172a; }
-    .snav.active { background: #fef3c7; color: #92400e; font-weight: 600; }
-    .snav-icon { width: 26px; height: 26px; border-radius: 7px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-  </style>
+  <link rel="stylesheet" href="/app.css">
+  <script>
+    // Před vykreslením — dark mode + sbalený sidebar z localStorage (žádný flash)
+    try {
+      if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && matchMedia('(prefers-color-scheme: dark)').matches)) document.documentElement.classList.add('dark');
+      if (localStorage.getItem('sb-collapsed') === '1') document.documentElement.classList.add('sb-collapsed');
+    } catch (e) {}
+  </script>
 </head>
-<body class="bg-slate-50 min-h-screen">
+<body class="min-h-screen">
 
 <!-- Mobile sidebar backdrop -->
 <div id="sidebar-backdrop" class="hidden fixed inset-0 bg-black/40 z-40 md:hidden" onclick="closeSidebar()"></div>
 
 <!-- Left nav sidebar -->
-<nav id="sidebar" class="fixed top-0 left-0 h-full w-56 bg-white border-r border-slate-100 flex flex-col z-50 -translate-x-full md:translate-x-0 transition-transform duration-200 shadow-sm">
+<nav id="sidebar" class="fixed top-0 left-0 h-full w-56 bg-white border-r border-slate-100 flex flex-col z-50 -translate-x-full md:translate-x-0 transition-all duration-200 overflow-hidden shadow-sm">
 
   <div class="px-4 py-4 border-b border-slate-100 shrink-0">
-    <div class="flex items-center gap-2 mb-2.5">
+    <div class="flex items-center gap-2 mb-2.5 sb-center">
       <span class="text-amber-400 font-bold text-lg">◆</span>
-      <span class="font-bold text-slate-900 text-[14px] tracking-tight">LeadGen.ai</span>
+      <span class="font-bold text-slate-900 text-[14px] tracking-tight sb-hide">LeadGen.ai</span>
     </div>
-    <p class="text-xs font-semibold text-slate-700 truncate mb-2">Admin Panel</p>
-    <span class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-red-100 text-red-600">Admin</span>
+    <p class="text-xs font-semibold text-slate-700 truncate mb-2 sb-hide">Admin Panel</p>
+    <span class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-red-100 text-red-600 sb-hide">Admin</span>
   </div>
 
   <div class="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
@@ -38,14 +38,14 @@
       <span class="snav-icon" style="background:#fef3c7;color:#b45309">
         <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/></svg>
       </span>
-      Leady
+      <span class="sb-hide">Leady</span>
     </a>
 
     <a href="/settings" class="snav">
       <span class="snav-icon" style="background:#f1f5f9;color:#475569">
         <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
       </span>
-      Nastavení
+      <span class="sb-hide">Nastavení</span>
     </a>
 
     <div class="my-2 border-t border-slate-100"></div>
@@ -54,22 +54,33 @@
       <span class="snav-icon" style="background:#fef9c3;color:#a16207">
         <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
       </span>
-      Admin
+      <span class="sb-hide">Admin</span>
     </a>
 
   </div>
 
+  <!-- Dark mode toggle -->
+  <div class="px-2 pb-2 shrink-0">
+    <button onclick="toggleDark()" class="snav">
+      <span class="snav-icon" id="dark-toggle-icon">🌙</span>
+      <span class="sb-hide" id="dark-toggle-label">Tmavý režim</span>
+    </button>
+  </div>
+
   <div class="px-4 py-4 border-t border-slate-100 shrink-0">
-    <div class="flex items-center gap-2.5 mb-3">
+    <div class="flex items-center gap-2.5 mb-3 sb-center">
       <div id="user-avatar" class="w-7 h-7 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-black font-black text-xs shrink-0">?</div>
-      <div class="min-w-0">
+      <div class="min-w-0 sb-hide">
         <p id="user-email-display" class="text-[11px] font-bold text-slate-700 truncate">—</p>
         <p class="text-[11px] text-slate-400">Admin</p>
       </div>
     </div>
-    <button onclick="signOut()" class="w-full text-left text-xs text-slate-400 hover:text-red-500 transition-colors py-0.5">Odhlásit se</button>
+    <button onclick="signOut()" class="w-full text-left text-xs text-slate-400 hover:text-red-500 transition-colors py-0.5 sb-hide">Odhlásit se</button>
   </div>
 </nav>
+
+<!-- Desktop collapse toggle — edge button -->
+<button id="sb-toggle" onclick="toggleCollapse()" aria-label="Sbalit / rozbalit menu"></button>
 
 <!-- Mobile top bar -->
 <div class="sticky top-0 z-30 flex h-12 items-center gap-3 border-b border-slate-200 bg-white px-4 md:hidden shadow-sm">
@@ -119,38 +130,38 @@
 
     <!-- KPI tiles -->
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-      <div class="bg-white rounded-[12px] border border-slate-100 px-5 py-4">
+      <div class="card px-5 py-4">
         <div id="s-workspaces" class="text-[30px] font-semibold tracking-tight text-slate-900">—</div>
         <div class="text-[13px] font-medium text-slate-700 mt-0.5">Firem celkem</div>
       </div>
-      <div class="bg-white rounded-[12px] border border-slate-100 px-5 py-4">
+      <div class="card px-5 py-4">
         <div id="s-active" class="text-[30px] font-semibold tracking-tight text-purple-700">—</div>
         <div class="text-[13px] font-medium text-slate-700 mt-0.5">Aktivní tento týden</div>
       </div>
-      <div class="bg-white rounded-[12px] border border-slate-100 px-5 py-4">
+      <div class="card px-5 py-4">
         <div id="s-leads" class="text-[30px] font-semibold tracking-tight text-amber-500">—</div>
         <div class="text-[13px] font-medium text-slate-700 mt-0.5">Leadů celkem</div>
       </div>
-      <div class="bg-white rounded-[12px] border border-slate-100 px-5 py-4">
+      <div class="card px-5 py-4">
         <div id="s-won" class="text-[30px] font-semibold tracking-tight text-green-600">—</div>
         <div class="text-[13px] font-medium text-slate-700 mt-0.5">Vyhráno</div>
       </div>
     </div>
 
     <!-- Workspaces table -->
-    <div class="bg-white rounded-[12px] border border-slate-100 overflow-hidden">
-      <div class="px-5 py-4 flex items-center justify-between" style="border-bottom:1px solid #f1f5f9">
+    <div class="card overflow-hidden">
+      <div class="px-5 py-4 flex items-center justify-between" style="border-bottom:1px solid var(--color-surface-warm)">
         <div>
           <h2 class="text-[15px] font-semibold text-slate-900">Firmy</h2>
           <p class="text-[12px] text-slate-400 mt-0.5">Klikni na řádek pro detail</p>
         </div>
         <input id="search" type="text" placeholder="Hledat firmu…" oninput="filterWorkspaces()"
-          class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 w-48">
+          class="field-input w-48 px-3 py-1.5">
       </div>
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
-            <tr class="text-[11px] uppercase tracking-[0.1em] text-slate-400" style="background:#f8fafc">
+            <tr class="text-[11px] uppercase tracking-[0.1em] text-slate-400" style="background:var(--color-surface)">
               <th class="px-5 py-3 text-left font-medium">Firma</th>
               <th class="px-4 py-3 text-left font-medium">E-mail</th>
               <th class="px-4 py-3 text-left font-medium">Režim</th>
@@ -169,7 +180,7 @@
     </div>
 
     <!-- Detail panel -->
-    <div id="detail-panel" class="hidden bg-white rounded-[12px] border border-slate-100 p-5">
+    <div id="detail-panel" class="hidden card p-5">
       <div class="flex items-center justify-between mb-5">
         <h3 id="detail-title" class="text-[15px] font-semibold text-slate-900"></h3>
         <button onclick="closeDetail()" class="text-slate-400 hover:text-slate-700 text-sm transition-colors">✕ Zavřít</button>
@@ -218,6 +229,29 @@ function closeSidebar() {
   document.getElementById('sidebar').classList.add('-translate-x-full');
   document.getElementById('sidebar-backdrop').classList.add('hidden');
 }
+
+// ── Dark mode & sbalitelný sidebar ────────────────────────────────────────────
+
+function toggleDark() {
+  const dark = document.documentElement.classList.toggle('dark');
+  try { localStorage.setItem('theme', dark ? 'dark' : 'light'); } catch (e) {}
+  syncDarkToggle();
+}
+
+function syncDarkToggle() {
+  const dark = document.documentElement.classList.contains('dark');
+  const icon = document.getElementById('dark-toggle-icon');
+  const label = document.getElementById('dark-toggle-label');
+  if (icon) icon.textContent = dark ? '☀️' : '🌙';
+  if (label) label.textContent = dark ? 'Světlý režim' : 'Tmavý režim';
+}
+syncDarkToggle();
+
+function toggleCollapse() {
+  const collapsed = document.documentElement.classList.toggle('sb-collapsed');
+  try { localStorage.setItem('sb-collapsed', collapsed ? '1' : '0'); } catch (e) {}
+}
+
 async function signOut() {
   await sb.auth.signOut();
   window.location.href = '/app';
@@ -282,7 +316,7 @@ function renderTable(list) {
       ? '<span class="bg-purple-100 text-purple-700 text-xs px-2 py-0.5 rounded-full font-medium">AI</span>'
       : '<span class="bg-slate-100 text-slate-500 text-xs px-2 py-0.5 rounded-full font-medium">Web</span>';
 
-    return `<tr class="hover:bg-slate-50 cursor-pointer transition-colors align-middle" style="border-top:1px solid #f8fafc" onclick="showDetail('${ws.id}')">
+    return `<tr class="hover:bg-slate-50 cursor-pointer transition-colors align-middle" style="border-top:1px solid var(--color-surface-warm)" onclick="showDetail('${ws.id}')">
       <td class="px-5 py-3">
         <div class="flex items-center">${dot}<span class="font-medium text-slate-900 text-[13px]">${esc(ws.company_name)}</span></div>
         <div class="text-[12px] text-slate-400 ml-3.5 mt-0.5">${esc(ws.sender_name)}</div>
