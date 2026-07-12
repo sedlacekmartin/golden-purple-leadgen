@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — LeadGen AI</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin { animation: spin 0.8s linear infinite; }
+  </style>
+</head>
+<body class="bg-slate-100 min-h-screen">
+
+<!-- Header -->
+<header class="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-10">
+  <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <a href="/index.html" class="text-gray-400 hover:text-gray-600 text-sm transition-colors">← App</a>
+      <div class="w-px h-4 bg-gray-200"></div>
+      <div class="flex items-center gap-2">
+        <span class="text-amber-400 font-bold">◆</span>
+        <span class="font-bold text-gray-800">Admin Panel</span>
+      </div>
+    </div>
+    <div id="admin-user" class="text-xs text-gray-400"></div>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-4 py-6">
+
+  <!-- Loading -->
+  <div id="loading" class="flex items-center justify-center py-20">
+    <div class="w-6 h-6 border-2 border-purple-300 border-t-purple-700 rounded-full spin"></div>
+  </div>
+
+  <!-- Error -->
+  <div id="error" class="hidden bg-red-50 border border-red-200 text-red-700 rounded-2xl p-6 text-center">
+    <div class="text-2xl mb-2">🚫</div>
+    <div id="error-msg" class="font-semibold"></div>
+  </div>
+
+  <!-- Content -->
+  <div id="content" class="hidden space-y-6">
+
+    <!-- Global stats -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4">
+        <div id="s-workspaces" class="text-3xl font-black text-gray-900">—</div>
+        <div class="text-xs text-gray-400 mt-0.5">Firem celkem</div>
+      </div>
+      <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4">
+        <div id="s-active" class="text-3xl font-black text-purple-700">—</div>
+        <div class="text-xs text-gray-400 mt-0.5">Aktivní tento týden</div>
+      </div>
+      <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4">
+        <div id="s-leads" class="text-3xl font-black text-amber-500">—</div>
+        <div class="text-xs text-gray-400 mt-0.5">Leadů celkem</div>
+      </div>
+      <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4">
+        <div id="s-won" class="text-3xl font-black text-green-600">—</div>
+        <div class="text-xs text-gray-400 mt-0.5">Vyhráno</div>
+      </div>
+    </div>
+
+    <!-- Workspaces table -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+        <h2 class="font-bold text-gray-800">Firmy</h2>
+        <input id="search" type="text" placeholder="Hledat firmu…" oninput="filterWorkspaces()"
+          class="bg-slate-50 rounded-lg px-3 py-1.5 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-purple-400 w-48">
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-gray-100 text-xs text-gray-400 uppercase tracking-wide">
+              <th class="px-5 py-3 text-left font-semibold">Firma</th>
+              <th class="px-4 py-3 text-left font-semibold">E-mail</th>
+              <th class="px-4 py-3 text-left font-semibold">Režim</th>
+              <th class="px-4 py-3 text-right font-semibold">Leadů</th>
+              <th class="px-4 py-3 text-right font-semibold">Osloveno</th>
+              <th class="px-4 py-3 text-right font-semibold">Vyhráno</th>
+              <th class="px-4 py-3 text-right font-semibold">Konverze</th>
+              <th class="px-4 py-3 text-left font-semibold">Poslední aktivita</th>
+              <th class="px-4 py-3 text-left font-semibold">Registrace</th>
+            </tr>
+          </thead>
+          <tbody id="ws-table" class="divide-y divide-gray-50"></tbody>
+        </table>
+        <div id="ws-empty" class="hidden text-center py-10 text-gray-400 text-sm">Žádné firmy</div>
+      </div>
+    </div>
+
+    <!-- Per-workspace lead breakdown (expandable) -->
+    <div id="detail-panel" class="hidden bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+      <div class="flex items-center justify-between mb-4">
+        <h3 id="detail-title" class="font-bold text-gray-800"></h3>
+        <button onclick="closeDetail()" class="text-gray-400 hover:text-gray-600 text-sm">✕ Zavřít</button>
+      </div>
+      <div id="detail-content"></div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+const SUPABASE_URL  = 'https://ktevejpvblfhyulgawki.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt0ZXZlanB2YmxmaHl1bGdhd2tpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2OTI4MzQsImV4cCI6MjA5NzI2ODgzNH0.-8xmLoiExiqj0DX0M8P3vtYYZOVWN6M_zd1um4R-s_Y';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+let allWorkspaces = [];
+
+const STATUS_LABELS = {
+  pending: 'Ke schválení', approved: 'Schválené', contacted: 'Osloveno',
+  replied: 'Odpovědělo', meeting: 'Schůzka', won: 'Vyhráno', lost: 'Prohráno', skipped: 'Přeskočeno',
+};
+const STATUS_COLORS = {
+  pending: 'bg-purple-100 text-purple-700', approved: 'bg-blue-100 text-blue-700',
+  contacted: 'bg-amber-100 text-amber-700', replied: 'bg-teal-100 text-teal-700',
+  meeting: 'bg-indigo-100 text-indigo-700', won: 'bg-green-100 text-green-700',
+  lost: 'bg-gray-100 text-gray-500', skipped: 'bg-gray-50 text-gray-400',
+};
+
+function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function fmt(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function relativeTime(iso) {
+  if (!iso) return '—';
+  const diff = Date.now() - new Date(iso);
+  const days = Math.floor(diff / 86400000);
+  if (days === 0) return 'Dnes';
+  if (days === 1) return 'Včera';
+  if (days < 7) return `Před ${days} dny`;
+  if (days < 30) return `Před ${Math.floor(days/7)} týd.`;
+  return fmt(iso);
+}
+
+async function load() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { window.location = '/index.html'; return; }
+
+  document.getElementById('admin-user').textContent = session.user.email;
+
+  const res = await fetch('/api/admin', {
+    headers: { Authorization: `Bearer ${session.access_token}` },
+  });
+  const data = await res.json();
+
+  document.getElementById('loading').classList.add('hidden');
+
+  if (!res.ok) {
+    document.getElementById('error').classList.remove('hidden');
+    document.getElementById('error-msg').textContent = data.error || 'Chyba načítání';
+    return;
+  }
+
+  document.getElementById('content').classList.remove('hidden');
+
+  // Stats
+  document.getElementById('s-workspaces').textContent = data.stats.workspaces;
+  document.getElementById('s-active').textContent = data.stats.active_workspaces;
+  document.getElementById('s-leads').textContent = data.stats.total_leads;
+  document.getElementById('s-won').textContent = data.stats.won;
+
+  allWorkspaces = data.workspaces;
+  renderTable(allWorkspaces);
+}
+
+function renderTable(list) {
+  const tb = document.getElementById('ws-table');
+  const empty = document.getElementById('ws-empty');
+  if (!list.length) { tb.innerHTML = ''; empty.classList.remove('hidden'); return; }
+  empty.classList.add('hidden');
+
+  tb.innerHTML = list.map(ws => {
+    const contacted = (ws.by_status?.contacted || 0) + (ws.by_status?.replied || 0)
+                    + (ws.by_status?.meeting || 0) + (ws.by_status?.won || 0);
+    const won = ws.by_status?.won || 0;
+    const conv = contacted > 0 ? Math.round(won / contacted * 100) : null;
+    const activeDot = ws.active_this_week
+      ? '<span class="w-2 h-2 bg-green-400 rounded-full inline-block mr-1.5"></span>'
+      : '<span class="w-2 h-2 bg-gray-200 rounded-full inline-block mr-1.5"></span>';
+    const modeBadge = ws.scoring_mode === 'icp'
+      ? '<span class="bg-purple-100 text-purple-700 text-xs px-2 py-0.5 rounded-full font-medium">AI</span>'
+      : '<span class="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full font-medium">Web</span>';
+
+    return `<tr class="hover:bg-slate-50 cursor-pointer transition-colors" onclick="showDetail('${ws.id}')">
+      <td class="px-5 py-3">
+        <div class="flex items-center gap-2">${activeDot}<span class="font-semibold text-gray-800">${esc(ws.company_name)}</span></div>
+        <div class="text-xs text-gray-400 ml-3.5">${esc(ws.sender_name)}</div>
+      </td>
+      <td class="px-4 py-3 text-gray-500 text-xs">${esc(ws.email)}</td>
+      <td class="px-4 py-3">${modeBadge}</td>
+      <td class="px-4 py-3 text-right font-semibold text-gray-800">${ws.total_leads}</td>
+      <td class="px-4 py-3 text-right text-amber-600 font-medium">${contacted || '—'}</td>
+      <td class="px-4 py-3 text-right text-green-600 font-bold">${won || '—'}</td>
+      <td class="px-4 py-3 text-right text-xs ${conv !== null ? 'text-teal-600 font-semibold' : 'text-gray-300'}">${conv !== null ? conv + ' %' : '—'}</td>
+      <td class="px-4 py-3 text-xs text-gray-400">${relativeTime(ws.last_lead_at)}</td>
+      <td class="px-4 py-3 text-xs text-gray-400">${fmt(ws.created_at)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function filterWorkspaces() {
+  const q = document.getElementById('search').value.toLowerCase();
+  const filtered = q
+    ? allWorkspaces.filter(w =>
+        w.company_name?.toLowerCase().includes(q) ||
+        w.email?.toLowerCase().includes(q) ||
+        w.sender_name?.toLowerCase().includes(q))
+    : allWorkspaces;
+  renderTable(filtered);
+}
+
+function showDetail(id) {
+  const ws = allWorkspaces.find(w => w.id === id);
+  if (!ws) return;
+
+  document.getElementById('detail-title').textContent = ws.company_name;
+  document.getElementById('detail-panel').classList.remove('hidden');
+  document.getElementById('detail-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  const statuses = ['pending','approved','contacted','replied','meeting','won','lost','skipped'];
+  const contacted = (ws.by_status?.contacted || 0) + (ws.by_status?.replied || 0)
+                  + (ws.by_status?.meeting || 0) + (ws.by_status?.won || 0);
+  const won = ws.by_status?.won || 0;
+
+  document.getElementById('detail-content').innerHTML = `
+    <div class="grid sm:grid-cols-2 gap-4 mb-5">
+      <div class="space-y-1.5 text-sm">
+        <div class="flex justify-between"><span class="text-gray-400">E-mail:</span><span class="font-medium">${esc(ws.email)}</span></div>
+        <div class="flex justify-between"><span class="text-gray-400">Odesílatel:</span><span class="font-medium">${esc(ws.sender_name)}</span></div>
+        <div class="flex justify-between"><span class="text-gray-400">Web:</span><span class="font-medium">${ws.website ? `<a href="${esc(ws.website)}" target="_blank" class="text-purple-600 hover:underline">${esc(ws.website)}</a>` : '—'}</span></div>
+        <div class="flex justify-between"><span class="text-gray-400">Scoring:</span><span class="font-medium">${ws.scoring_mode === 'icp' ? 'AI / ICP' : 'Slabá online prezentace'}</span></div>
+        <div class="flex justify-between"><span class="text-gray-400">Registrace:</span><span class="font-medium">${fmt(ws.created_at)}</span></div>
+        <div class="flex justify-between"><span class="text-gray-400">Poslední lead:</span><span class="font-medium">${relativeTime(ws.last_lead_at)}</span></div>
+      </div>
+      <div>
+        <div class="text-xs text-gray-400 font-semibold uppercase tracking-widest mb-2">Leady podle stavu</div>
+        <div class="space-y-1.5">
+          ${statuses.filter(s => ws.by_status?.[s]).map(s => {
+            const n = ws.by_status[s];
+            const pct = ws.total_leads > 0 ? Math.round(n / ws.total_leads * 100) : 0;
+            return `<div class="flex items-center gap-2">
+              <div class="w-24 text-xs text-gray-500">${STATUS_LABELS[s] || s}</div>
+              <div class="flex-1 bg-gray-100 rounded-full h-3 overflow-hidden">
+                <div class="h-full rounded-full bg-purple-400" style="width:${pct}%"></div>
+              </div>
+              <div class="text-xs font-semibold text-gray-700 w-6 text-right">${n}</div>
+            </div>`;
+          }).join('') || '<div class="text-gray-300 text-sm">Žádné leady</div>'}
+        </div>
+      </div>
+    </div>
+    ${ws.pitch ? `<div class="bg-slate-50 rounded-xl p-3 text-sm text-gray-600"><span class="font-semibold text-gray-400 text-xs uppercase tracking-wide block mb-1">Co nabízí</span>${esc(ws.pitch)}</div>` : ''}
+    ${ws.icp ? `<div class="bg-purple-50 rounded-xl p-3 text-sm text-gray-600 mt-2"><span class="font-semibold text-gray-400 text-xs uppercase tracking-wide block mb-1">Scoring popis (ICP)</span>${esc(ws.icp)}</div>` : ''}
+  `;
+}
+
+function closeDetail() {
+  document.getElementById('detail-panel').classList.add('hidden');
+}
+
+load();
+</script>
+</body>
+</html>

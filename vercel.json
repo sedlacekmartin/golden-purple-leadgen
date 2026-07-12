@@ -1,6 +1,7 @@
 {
   "rewrites": [
     { "source": "/app", "destination": "/index.html" },
+    { "source": "/admin", "destination": "/admin.html" },
     { "source": "/", "destination": "/landing.html" }
   ],
   "crons": [
