@@ -22,25 +22,25 @@ export default async function handler(req, res) {
       max_tokens: 350,
       messages: [{
         role: 'user',
-        content: `Firma "${company || 'neznámá'}" nabízí: ${pitch || 'služby pro firmy'}
+        content: `Napiš scoring popis ideálního zákazníka pro AI lead scoring systém.
 
-Vytvořili jsme personu ideálního zákazníka:
-Jméno: ${persona.name || 'neznámé'}
-Role: ${persona.role || 'neznámá'}
-Věk: ${persona.age || 'neznámý'}
-Velikost firmy: ${persona.size || 'neznámá'}
-Obor: ${persona.industry || 'neznámý'}
-${pains.length ? `Problémy:\n${pains.map((p, i) => `${i+1}. ${p}`).join('\n')}` : ''}
-${goals.length ? `Cíle:\n${goals.map((g, i) => `${i+1}. ${g}`).join('\n')}` : ''}
+Persona zákazníka:
+- Jméno/typ: ${persona.name || '—'}
+- Role: ${persona.role || '—'}, věk: ${persona.age || '—'}
+- Velikost firmy: ${persona.size || '—'}
+- Obor: ${persona.industry || '—'}
+${pains.length ? `- Problémy zákazníka: ${pains.join('; ')}` : ''}
+${goals.length ? `- Cíle zákazníka: ${goals.join('; ')}` : ''}
 
-Napiš stručný, konkrétní scoring popis ideálního zákazníka pro AI lead scoring systém.
-Popis musí pomoci AI rozpoznat, zda konkrétní firma z Google Maps sedí na tuto personu.
+Úkol: Napiš stručný popis, který pomůže AI rozpoznat firmy STEJNÉHO TYPU jako je tato persona.
+Popis popisuje TYP FIRMY A ZÁKAZNÍKA — ne co jim nabízíme.
 
 Pravidla:
 - Max 4 věty, max 100 slov
-- Zaměř se na objektivně měřitelné znaky (obor, velikost, online přítomnost, situace)
+- Vycházej VÝHRADNĚ z dat persony výše — nepřidávej nic co tam není
+- Zaměř se na: obor, velikost firmy, typickou situaci a problémy zákazníka
+- NEZMIŇUJ web, online prezentaci ani marketing — pokud to není přímo v datech persony
 - Piš ve třetí osobě ("Firmy v oboru...", "Typicky se jedná o...")
-- Žádné firemní jargon, žádné buzzwordy
 - Piš česky, bez nadpisů, jen čistý text`,
       }],
     });
