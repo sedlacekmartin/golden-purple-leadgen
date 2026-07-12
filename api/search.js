@@ -155,12 +155,17 @@ export default async function handler(req, res) {
 
   const { location = 'Třebíč', categories = ['restaurace'], limit = 10 } = req.body || {};
 
+  // ICP mode is heavy (Claude call per draft) — cap total to avoid Vercel 60s timeout
+  const isIcp = workspace.scoring_mode === 'icp' && workspace.icp;
+  const effectiveLimit = isIcp ? Math.min(parseInt(limit), 15) : parseInt(limit);
+
   try {
-    const perCat = Math.max(3, Math.ceil(parseInt(limit) / categories.length));
+    const perCat = Math.max(2, Math.ceil(effectiveLimit / categories.length));
     const allCompanies = [];
     for (const cat of categories) {
       const results = await searchCompanies(location, cat, perCat);
       allCompanies.push(...results);
+      if (allCompanies.length >= effectiveLimit) break;
     }
     console.log('Companies found:', allCompanies.length);
 
@@ -181,7 +186,7 @@ export default async function handler(req, res) {
     const enriched = await mapConcurrent(fresh, 5, enrichCompany);
 
     // 3) scoring podle režimu workspace
-    const scored = workspace.scoring_mode === 'icp' && workspace.icp
+    const scored = isIcp
       ? await scoreLeadsIcp(enriched, workspace)
       : enriched.map(scoreLeadWeb);
 

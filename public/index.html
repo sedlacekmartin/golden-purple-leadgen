@@ -157,6 +157,10 @@
         </div>
         <div id="cat-chips" class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1 mb-3"></div>
 
+        <div id="icp-warn" class="hidden text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
+          ⚠️ AI režim: při více než 5 kategoriích doporučujeme max 10 výsledků, jinak může vyhledávání vypršet.
+        </div>
+
         <label class="text-xs text-gray-400 font-medium mb-1 block">Počet výsledků (max 50)</label>
         <input id="inp-limit" type="number" placeholder="10" value="10" min="1" max="50"
           class="w-full bg-slate-50 rounded-lg px-3 py-2.5 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-purple-400 mb-4">
@@ -333,6 +337,7 @@ async function logout() {
 async function initWorkspace() {
   const { data } = await sb.from('workspaces').select('*').maybeSingle();
   workspace = data;
+  updateIcpWarn();
   if (!workspace) {
     openWsModal(true); // onboarding — nejde zavřít
   } else {
@@ -401,6 +406,7 @@ async function saveWorkspace() {
       : await sb.from('workspaces').insert({ ...fields, owner: user.id }).select().single();
     if (error) throw error;
     workspace = data;
+    updateIcpWarn();
     document.getElementById('header-company').textContent = workspace.company_name;
     closeWsModal();
     toast('Profil uložen ✓');
@@ -457,18 +463,30 @@ async function runSearch() {
   spinner.classList.remove('hidden');
   label.textContent = 'Hledám…';
   try {
-    const res = await authFetch('/api/search', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        location:   document.getElementById('inp-location').value.trim() || 'Třebíč',
-        categories: selectedCats.size ? [...selectedCats] : ['restaurace'],
-        limit:      parseInt(document.getElementById('inp-limit').value) || 10,
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Chyba serveru');
-    toast(`Nalezeno ${data.leads?.length ?? 0} leadů`);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 58000);
+    let res, data;
+    try {
+      res = await authFetch('/api/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          location:   document.getElementById('inp-location').value.trim() || 'Třebíč',
+          categories: selectedCats.size ? [...selectedCats] : ['restaurace'],
+          limit:      parseInt(document.getElementById('inp-limit').value) || 10,
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      data = await res.json().catch(() => ({ error: 'Neplatná odpověď serveru' }));
+    } catch(fetchErr) {
+      clearTimeout(timeout);
+      if (fetchErr.name === 'AbortError') throw new Error('Vyhledávání trvalo příliš dlouho — zkus méně kategorií nebo nižší limit.');
+      throw fetchErr;
+    }
+    if (!res.ok) throw new Error(typeof data.error === 'string' ? data.error : 'Chyba serveru (' + res.status + ')');
+    const count = data.leads?.length ?? 0;
+    toast(count > 0 ? `Nalezeno ${count} nových leadů` : 'Žádné nové leady — firmy už jsou v databázi nebo nebyly nalezeny');
     await loadLeads();
   } catch(e) {
     toast(e.message || 'Chyba při vyhledávání', true);
@@ -954,11 +972,20 @@ function renderChips() {
 function toggleCat(cat) {
   if (selectedCats.has(cat)) { selectedCats.delete(cat); } else { selectedCats.add(cat); }
   renderChips();
+  updateIcpWarn();
+}
+
+function updateIcpWarn() {
+  const warn = document.getElementById('icp-warn');
+  if (!warn) return;
+  const isIcp = workspace?.scoring_mode === 'icp';
+  warn.classList.toggle('hidden', !(isIcp && selectedCats.size > 5));
 }
 
 function toggleAllCategories() {
   if (ALL_CATS.every(c => selectedCats.has(c))) { selectedCats.clear(); } else { ALL_CATS.forEach(c => selectedCats.add(c)); }
   renderChips();
+  updateIcpWarn();
 }
 
 renderChips();
