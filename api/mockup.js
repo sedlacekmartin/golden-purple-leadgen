@@ -1,10 +1,9 @@
 import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
-import { createClient } from '@supabase/supabase-js';
+import { requireUser } from '../lib/auth.js';
 
 const openai    = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const supabase  = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 
 export const config = { maxDuration: 60 };
 
@@ -77,10 +76,14 @@ async function generateAndStore(lead) {
 }
 
 export default async function handler(req, res) {
+  const auth = await requireUser(req);
+  if (auth.error) return res.status(auth.status).json({ error: auth.error });
+  const { sb } = auth;
+
   const { id, regen } = req.query;
   if (!id) return res.status(400).json({ error: 'Chybí ID' });
 
-  const { data: lead, error } = await supabase
+  const { data: lead, error } = await sb
     .from('leads').select('*').eq('id', id).single();
 
   if (error || !lead) return res.status(404).json({ error: 'Lead nenalezen' });
@@ -92,7 +95,7 @@ export default async function handler(req, res) {
 
   try {
     const url = await generateAndStore(lead);
-    await supabase.from('leads').update({ mockup_url: url }).eq('id', id);
+    await sb.from('leads').update({ mockup_url: url }).eq('id', id);
     res.status(200).json({ url });
   } catch (err) {
     console.error('Mockup error:', err);

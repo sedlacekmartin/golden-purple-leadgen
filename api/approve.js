@@ -1,9 +1,11 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+import { requireUser } from '../lib/auth.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
+
+  const auth = await requireUser(req);
+  if (auth.error) return res.status(auth.status).json({ error: auth.error });
+  const { sb } = auth;
 
   const { id, status, email_draft, notes, follow_up, contacted_at } = req.body || {};
   if (!id) return res.status(400).json({ error: 'id is required' });
@@ -16,7 +18,7 @@ export default async function handler(req, res) {
     if (follow_up !== undefined) updates.follow_up = follow_up || null;
     if (contacted_at !== undefined) updates.contacted_at = contacted_at;
 
-    const { data, error } = await supabase
+    const { data, error } = await sb
       .from('leads')
       .update(updates)
       .eq('id', id)

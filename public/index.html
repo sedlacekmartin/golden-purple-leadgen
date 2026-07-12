@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Golden Purple — Lead-gen</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     @keyframes spin { to { transform: rotate(360deg); } }
     @keyframes slideUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
@@ -18,18 +19,115 @@
 </head>
 <body class="bg-slate-100 min-h-screen">
 
+<!-- ── AUTH SCREEN ─────────────────────────────────────────────────────────── -->
+<div id="auth-screen" class="hidden fixed inset-0 bg-slate-100 z-40 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 w-full max-w-sm">
+    <div class="flex items-center gap-2.5 justify-center mb-6">
+      <span class="text-amber-400 font-bold text-2xl">◆</span>
+      <span class="font-bold text-xl tracking-tight text-purple-900">Lead-gen</span>
+    </div>
+    <div id="auth-title" class="text-center text-sm text-gray-400 mb-5">Přihlas se ke svému účtu</div>
+
+    <input id="auth-email" type="email" placeholder="E-mail" autocomplete="email"
+      class="w-full bg-slate-50 rounded-lg px-3 py-2.5 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-purple-400 mb-2">
+    <input id="auth-password" type="password" placeholder="Heslo (min. 6 znaků)" autocomplete="current-password"
+      class="w-full bg-slate-50 rounded-lg px-3 py-2.5 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-purple-400 mb-4"
+      onkeydown="if(event.key==='Enter')authSubmit()">
+
+    <button id="auth-submit" onclick="authSubmit()"
+      class="w-full bg-purple-700 hover:bg-purple-800 disabled:opacity-60 text-white py-2.5 rounded-lg text-sm font-semibold transition-colors mb-3">
+      Přihlásit se
+    </button>
+
+    <div class="text-center text-xs text-gray-400">
+      <span id="auth-switch-text">Nemáš účet?</span>
+      <button onclick="toggleAuthMode()" id="auth-switch-btn" class="text-purple-600 font-medium hover:underline">Registruj se</button>
+    </div>
+    <div id="auth-error" class="hidden text-center text-xs text-red-500 mt-3"></div>
+  </div>
+</div>
+
+<!-- ── ONBOARDING / NASTAVENÍ ──────────────────────────────────────────────── -->
+<div id="ws-modal" class="hidden fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4 overflow-y-auto">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 my-8">
+    <h2 id="ws-title" class="font-bold text-lg text-gray-800 mb-1">Nastavení firmy</h2>
+    <p class="text-xs text-gray-400 mb-5">Tyhle údaje řídí, jak agent píše e-maily a hodnotí leady.</p>
+
+    <label class="text-xs text-gray-400 font-medium mb-1 block">Název firmy *</label>
+    <input id="ws-company" type="text" placeholder="např. KOVOTECH s.r.o."
+      class="w-full bg-slate-50 rounded-lg px-3 py-2.5 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-purple-400 mb-3">
+
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <label class="text-xs text-gray-400 font-medium mb-1 block">Jméno odesílatele *</label>
+        <input id="ws-sender" type="text" placeholder="např. Martin"
+          class="w-full bg-slate-50 rounded-lg px-3 py-2.5 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-purple-400 mb-3">
+      </div>
+      <div>
+        <label class="text-xs text-gray-400 font-medium mb-1 block">Web firmy</label>
+        <input id="ws-website" type="text" placeholder="např. kovotech.cz"
+          class="w-full bg-slate-50 rounded-lg px-3 py-2.5 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-purple-400 mb-3">
+      </div>
+    </div>
+
+    <label class="text-xs text-gray-400 font-medium mb-1 block">Co nabízíte? *</label>
+    <textarea id="ws-pitch" rows="2" placeholder="např. CNC obrábění kovů na zakázku, malé a střední série"
+      class="w-full bg-slate-50 rounded-lg px-3 py-2.5 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-purple-400 resize-none mb-4"></textarea>
+
+    <label class="text-xs text-gray-400 font-medium mb-2 block">Jak hodnotit leady?</label>
+    <div class="space-y-2 mb-3">
+      <label class="flex items-start gap-2.5 p-3 rounded-xl border border-gray-200 cursor-pointer has-[:checked]:border-purple-400 has-[:checked]:bg-purple-50/50 transition-colors">
+        <input type="radio" name="ws-mode" value="web" checked class="accent-purple-600 mt-0.5">
+        <span>
+          <span class="text-sm font-medium text-gray-700 block">Slabá online prezentace</span>
+          <span class="text-xs text-gray-400">Pro agentury prodávající weby a marketing — vysoké skóre = firma bez webu / recenzí</span>
+        </span>
+      </label>
+      <label class="flex items-start gap-2.5 p-3 rounded-xl border border-gray-200 cursor-pointer has-[:checked]:border-purple-400 has-[:checked]:bg-purple-50/50 transition-colors">
+        <input type="radio" name="ws-mode" value="icp" class="accent-purple-600 mt-0.5">
+        <span>
+          <span class="text-sm font-medium text-gray-700 block">Shoda s ideálním zákazníkem (AI)</span>
+          <span class="text-xs text-gray-400">Popiš svého ideálního zákazníka a AI ohodnotí každou firmu podle shody</span>
+        </span>
+      </label>
+    </div>
+
+    <div id="ws-icp-wrap" class="hidden">
+      <label class="text-xs text-gray-400 font-medium mb-1 block">Ideální zákazník</label>
+      <textarea id="ws-icp" rows="2" placeholder="např. výrobní firmy 10–100 zaměstnanců, které nakupují obráběné díly"
+        class="w-full bg-slate-50 rounded-lg px-3 py-2.5 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-purple-400 resize-none mb-3"></textarea>
+    </div>
+
+    <div id="ws-error" class="hidden text-xs text-red-500 mb-3"></div>
+
+    <div class="flex gap-2 mt-2">
+      <button onclick="saveWorkspace()" id="ws-save"
+        class="flex-1 bg-purple-700 hover:bg-purple-800 disabled:opacity-60 text-white py-2.5 rounded-lg text-sm font-semibold transition-colors">
+        Uložit
+      </button>
+      <button onclick="closeWsModal()" id="ws-cancel"
+        class="px-4 border border-gray-200 hover:bg-gray-50 text-gray-500 py-2.5 rounded-lg text-sm transition-colors">
+        Zrušit
+      </button>
+    </div>
+  </div>
+</div>
+
 <header class="bg-purple-900 shadow-lg sticky top-0 z-20">
   <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
     <div class="flex items-center gap-2.5">
       <span class="text-amber-400 font-bold text-xl">◆</span>
-      <span class="text-white font-bold text-lg tracking-tight">Golden Purple</span>
-      <span class="text-purple-300 text-sm hidden sm:inline">/ Lead-gen</span>
+      <span id="header-company" class="text-white font-bold text-lg tracking-tight">Lead-gen</span>
     </div>
     <div class="flex items-center gap-3">
       <button onclick="exportCsv()" title="Export do CSV"
         class="text-purple-300 hover:text-white text-sm px-2 py-1 rounded-lg border border-purple-700 hover:border-purple-500 transition-colors">⬇ CSV</button>
+      <button onclick="openWsModal()" title="Nastavení firmy"
+        class="text-purple-300 hover:text-white text-xl px-1 transition-colors">⚙</button>
       <button onclick="loadLeads()" title="Obnovit"
         class="text-purple-300 hover:text-white text-xl px-1 transition-colors">↻</button>
+      <button onclick="logout()" title="Odhlásit"
+        class="text-purple-300 hover:text-white text-sm px-1 transition-colors">Odhlásit</button>
     </div>
   </div>
 </header>
@@ -168,6 +266,153 @@
 </div>
 
 <script>
+// ── Supabase Auth ─────────────────────────────────────────────────────────────
+
+const SUPABASE_URL = 'https://ktevejpvblfhyulgawki.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt0ZXZlanB2YmxmaHl1bGdhd2tpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2OTI4MzQsImV4cCI6MjA5NzI2ODgzNH0.-8xmLoiExiqj0DX0M8P3vtYYZOVWN6M_zd1um4R-s_Y';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let session = null;
+let workspace = null;
+let authMode = 'login'; // 'login' | 'signup'
+
+async function authFetch(url, opts = {}) {
+  opts.headers = { ...(opts.headers || {}), Authorization: `Bearer ${session?.access_token || ''}` };
+  return fetch(url, opts);
+}
+
+function showAuthScreen(show) {
+  document.getElementById('auth-screen').classList.toggle('hidden', !show);
+}
+
+function toggleAuthMode() {
+  authMode = authMode === 'login' ? 'signup' : 'login';
+  document.getElementById('auth-title').textContent = authMode === 'login' ? 'Přihlas se ke svému účtu' : 'Založ si nový účet';
+  document.getElementById('auth-submit').textContent = authMode === 'login' ? 'Přihlásit se' : 'Registrovat se';
+  document.getElementById('auth-switch-text').textContent = authMode === 'login' ? 'Nemáš účet?' : 'Už máš účet?';
+  document.getElementById('auth-switch-btn').textContent = authMode === 'login' ? 'Registruj se' : 'Přihlas se';
+  authError('');
+}
+
+function authError(msg) {
+  const el = document.getElementById('auth-error');
+  el.textContent = msg;
+  el.classList.toggle('hidden', !msg);
+}
+
+async function authSubmit() {
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  if (!email || password.length < 6) { authError('Vyplň e-mail a heslo (min. 6 znaků)'); return; }
+
+  const btn = document.getElementById('auth-submit');
+  btn.disabled = true;
+  try {
+    const { data, error } = authMode === 'login'
+      ? await sb.auth.signInWithPassword({ email, password })
+      : await sb.auth.signUp({ email, password });
+    if (error) throw error;
+    if (!data.session) { authError('Zkontroluj e-mail a potvrď registraci.'); return; }
+    session = data.session;
+    showAuthScreen(false);
+    await initWorkspace();
+  } catch (e) {
+    authError(e.message === 'Invalid login credentials' ? 'Špatný e-mail nebo heslo' : e.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function logout() {
+  await sb.auth.signOut();
+  location.reload();
+}
+
+// ── Workspace ─────────────────────────────────────────────────────────────────
+
+async function initWorkspace() {
+  const { data } = await sb.from('workspaces').select('*').maybeSingle();
+  workspace = data;
+  if (!workspace) {
+    openWsModal(true); // onboarding — nejde zavřít
+  } else {
+    document.getElementById('header-company').textContent = workspace.company_name;
+    await loadLeads();
+  }
+}
+
+function openWsModal(onboarding = false) {
+  document.getElementById('ws-title').textContent = onboarding ? 'Vítej! Nastav si firmu' : 'Nastavení firmy';
+  document.getElementById('ws-cancel').classList.toggle('hidden', onboarding);
+  if (workspace) {
+    document.getElementById('ws-company').value = workspace.company_name || '';
+    document.getElementById('ws-sender').value = workspace.sender_name || '';
+    document.getElementById('ws-website').value = workspace.website || '';
+    document.getElementById('ws-pitch').value = workspace.pitch || '';
+    document.getElementById('ws-icp').value = workspace.icp || '';
+    document.querySelector(`input[name="ws-mode"][value="${workspace.scoring_mode || 'web'}"]`).checked = true;
+  }
+  syncIcpVisibility();
+  document.getElementById('ws-modal').classList.remove('hidden');
+}
+
+function closeWsModal() {
+  document.getElementById('ws-modal').classList.add('hidden');
+}
+
+function syncIcpVisibility() {
+  const mode = document.querySelector('input[name="ws-mode"]:checked')?.value;
+  document.getElementById('ws-icp-wrap').classList.toggle('hidden', mode !== 'icp');
+}
+document.addEventListener('change', e => { if (e.target.name === 'ws-mode') syncIcpVisibility(); });
+
+async function saveWorkspace() {
+  const company_name = document.getElementById('ws-company').value.trim();
+  const sender_name = document.getElementById('ws-sender').value.trim();
+  const pitch = document.getElementById('ws-pitch').value.trim();
+  const scoring_mode = document.querySelector('input[name="ws-mode"]:checked')?.value || 'web';
+  const icp = document.getElementById('ws-icp').value.trim();
+  const errEl = document.getElementById('ws-error');
+
+  if (!company_name || !sender_name || !pitch) {
+    errEl.textContent = 'Vyplň název firmy, jméno odesílatele a co nabízíte.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  if (scoring_mode === 'icp' && !icp) {
+    errEl.textContent = 'Pro AI režim popiš svého ideálního zákazníka.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  errEl.classList.add('hidden');
+
+  const fields = {
+    company_name, sender_name, pitch, scoring_mode,
+    icp: icp || null,
+    website: document.getElementById('ws-website').value.trim() || null,
+  };
+
+  const btn = document.getElementById('ws-save');
+  btn.disabled = true;
+  try {
+    const { data: { user } } = await sb.auth.getUser();
+    const { data, error } = workspace
+      ? await sb.from('workspaces').update(fields).eq('id', workspace.id).select().single()
+      : await sb.from('workspaces').insert({ ...fields, owner: user.id }).select().single();
+    if (error) throw error;
+    workspace = data;
+    document.getElementById('header-company').textContent = workspace.company_name;
+    closeWsModal();
+    toast('Profil uložen ✓');
+    await loadLeads();
+  } catch (e) {
+    errEl.textContent = e.message;
+    errEl.classList.remove('hidden');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 // ── Pipeline ──────────────────────────────────────────────────────────────────
 
 const TABS = [
@@ -191,7 +436,7 @@ function getTabLeads(tab) {
 
 async function loadLeads() {
   try {
-    const res = await fetch('/api/leads');
+    const res = await authFetch('/api/leads');
     const data = await res.json();
     leadsByStatus = {};
     for (const l of (data.leads || [])) {
@@ -212,7 +457,7 @@ async function runSearch() {
   spinner.classList.remove('hidden');
   label.textContent = 'Hledám…';
   try {
-    const res = await fetch('/api/search', {
+    const res = await authFetch('/api/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -236,7 +481,7 @@ async function runSearch() {
 
 async function patchLead(id, data) {
   try {
-    await fetch('/api/approve', {
+    await authFetch('/api/approve', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, ...data }),
@@ -311,7 +556,7 @@ async function showMockup(id, btn) {
   btn.textContent = 'Generuji…';
   btn.disabled = true;
   try {
-    const res  = await fetch(`/api/mockup?id=${id}`);
+    const res  = await authFetch(`/api/mockup?id=${id}`);
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Chyba');
     document.getElementById('mockup-img').src = data.url;
@@ -331,7 +576,7 @@ async function regenMockup() {
   btn.textContent = 'Generuji…';
   btn.disabled = true;
   try {
-    const res  = await fetch(`/api/mockup?id=${currentMockupId}&regen=1`);
+    const res  = await authFetch(`/api/mockup?id=${currentMockupId}&regen=1`);
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Chyba');
     document.getElementById('mockup-img').src = data.url;
@@ -719,7 +964,18 @@ function toggleAllCategories() {
 renderChips();
 
 // ── Init ──────────────────────────────────────────────────────────────────────
-loadLeads();
+
+(async function initApp() {
+  const { data } = await sb.auth.getSession();
+  session = data.session;
+  if (!session) {
+    showAuthScreen(true);
+    return;
+  }
+  await initWorkspace();
+})();
+
+sb.auth.onAuthStateChange((_event, s) => { if (s) session = s; });
 </script>
 </body>
 </html>

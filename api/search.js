@@ -1,9 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { createClient } from '@supabase/supabase-js';
+import { requireUser } from '../lib/auth.js';
 import { enrichCompany, mapConcurrent } from '../lib/enrich.js';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 
 const PLACES_KEY = process.env.GOOGLE_PLACES_API_KEY;
 
@@ -21,7 +20,6 @@ async function searchCompanies(location, category, limit) {
   });
 
   const data = await res.json();
-  console.log('Places raw:', JSON.stringify(data).slice(0, 500));
   if (!res.ok || data.error) throw new Error(`Google Places ${res.status}: ${data.error?.message || JSON.stringify(data.error)}`);
 
   return (data.places || []).map(p => ({
@@ -33,11 +31,12 @@ async function searchCompanies(location, category, limit) {
     google_rating: p.rating || null,
     review_count: p.userRatingCount || 0,
     has_website: !!p.websiteUri,
-    website_age_years: null,
   }));
 }
 
-function scoreLead(company) {
+// ── Scoring: režim "web" (slabá online prezentace) ───────────────────────────
+
+function scoreLeadWeb(company) {
   let score = 0;
   const reasons = [];
 
@@ -67,7 +66,58 @@ function scoreLead(company) {
   return { ...company, score, reasons };
 }
 
-async function draftEmail(company) {
+// ── Scoring: režim "icp" (AI shoda s ideálním zákazníkem) ────────────────────
+
+async function scoreLeadsIcp(companies, workspace) {
+  const list = companies.map((c, i) => ({
+    i,
+    name: c.name,
+    category: c.category,
+    location: c.location,
+    website: c.website,
+    rating: c.google_rating,
+    reviews: c.review_count,
+    founded: c.founded,
+    employees: c.employees,
+    legal_form: c.legal_form,
+  }));
+
+  const msg = await anthropic.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 4096,
+    messages: [{
+      role: 'user',
+      content: `Firma "${workspace.company_name}" hledá zákazníky.
+Co nabízí: ${workspace.pitch || 'neuvedeno'}
+Ideální zákazník: ${workspace.icp}
+
+Ohodnoť každou firmu skóre 0–100 podle shody s ideálním zákazníkem
+a uveď max 3 krátké důvody česky.
+
+Firmy: ${JSON.stringify(list)}
+
+Odpověz POUZE validním JSON polem: [{"i": 0, "score": 75, "reasons": ["...", "..."]}, ...]`,
+    }],
+  });
+
+  let scores = [];
+  try {
+    const text = msg.content[0].text.trim().replace(/^```json?\s*|\s*```$/g, '');
+    scores = JSON.parse(text);
+  } catch (e) {
+    console.error('ICP scoring parse error:', e.message);
+    return companies.map(c => ({ ...c, score: 50, reasons: ['AI scoring selhal — výchozí skóre'] }));
+  }
+
+  return companies.map((c, idx) => {
+    const s = scores.find(x => x.i === idx);
+    return { ...c, score: s?.score ?? 50, reasons: s?.reasons ?? [] };
+  });
+}
+
+// ── Draft e-mailu z profilu workspace ────────────────────────────────────────
+
+async function draftEmail(company, workspace) {
   const facts = [
     `Firma: ${company.name} | ${company.location} | ${company.category}`,
     `Má web: ${company.has_website}`,
@@ -81,19 +131,27 @@ async function draftEmail(company) {
     max_tokens: 400,
     messages: [{
       role: 'user',
-      content: `Jsi Martin z agentury Golden Purple (goldenpurple.cz).
+      content: `Jsi ${workspace.sender_name} z firmy ${workspace.company_name}${workspace.website ? ` (${workspace.website})` : ''}.
+Co nabízíš: ${workspace.pitch || 'služby pro firmy'}
 Napiš krátký, přirozený, neprodejný e-mail pro tuto firmu.
 ${facts}
 Proč příležitost: ${company.reasons.join(', ')}
 Pravidla: max 5 vět, žádná klišé, konkrétní zmínka situace (klidně využij stáří firmy nebo velikost, pokud to zní přirozeně), CTA na call/reply, přímý lidský tón.
-Podpis: Martin / Golden Purple`,
+Podpis: ${workspace.sender_name} / ${workspace.company_name}`,
     }],
   });
   return msg.content[0].text;
 }
 
+// ── Handler ──────────────────────────────────────────────────────────────────
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
+
+  const auth = await requireUser(req);
+  if (auth.error) return res.status(auth.status).json({ error: auth.error });
+  const { sb, workspace } = auth;
+  if (!workspace) return res.status(400).json({ error: 'Nejdřív si vyplň profil firmy (⚙ Nastavení)' });
 
   const { location = 'Třebíč', categories = ['restaurace'], limit = 10 } = req.body || {};
 
@@ -104,14 +162,12 @@ export default async function handler(req, res) {
       const results = await searchCompanies(location, cat, perCat);
       allCompanies.push(...results);
     }
-    const companies = allCompanies;
-    console.log('Companies found:', companies.length);
-    const scored = companies.map(scoreLead);
+    console.log('Companies found:', allCompanies.length);
 
-    // 1) vyřaď duplicity
+    // 1) vyřaď duplicity (RLS omezuje dotaz na vlastní workspace)
     const fresh = [];
-    for (const company of scored) {
-      const { data: existing } = await supabase
+    for (const company of allCompanies) {
+      const { data: existing } = await sb
         .from('leads')
         .select('id')
         .eq('company', company.name)
@@ -121,26 +177,30 @@ export default async function handler(req, res) {
       fresh.push(company);
     }
 
-    // 2) obohať: e-mail z webu + ARES (paralelně, max 5 najednou)
+    // 2) obohať: e-mail z webu + ARES (paralelně)
     const enriched = await mapConcurrent(fresh, 5, enrichCompany);
-    console.log('Enriched:', enriched.filter(c => c.email).length, 'with email,',
-      enriched.filter(c => c.ico).length, 'with ARES data');
 
-    // 3) drafty paralelně
-    const withDrafts = await mapConcurrent(enriched, 5, async c => ({
+    // 3) scoring podle režimu workspace
+    const scored = workspace.scoring_mode === 'icp' && workspace.icp
+      ? await scoreLeadsIcp(enriched, workspace)
+      : enriched.map(scoreLeadWeb);
+
+    // 4) drafty paralelně
+    const withDrafts = await mapConcurrent(scored, 5, async c => ({
       ...c,
-      email_draft: await draftEmail(c).catch(err => {
+      email_draft: await draftEmail(c, workspace).catch(err => {
         console.error('Draft error:', c.name, err.message);
         return null;
       }),
     }));
 
-    // 4) ulož
+    // 5) ulož
     const leads = [];
     for (const company of withDrafts) {
-      const { data, error } = await supabase
+      const { data, error } = await sb
         .from('leads')
         .insert({
+          workspace_id: workspace.id,
           company: company.name,
           location: company.location,
           category: company.category,

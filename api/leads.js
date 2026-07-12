@@ -1,14 +1,16 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+import { requireUser } from '../lib/auth.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).end();
 
+  const auth = await requireUser(req);
+  if (auth.error) return res.status(auth.status).json({ error: auth.error });
+  const { sb } = auth;
+
   const { status } = req.query;
 
   try {
-    let query = supabase.from('leads').select('*').order('score', { ascending: false });
+    let query = sb.from('leads').select('*').order('score', { ascending: false });
     if (status) query = query.eq('status', status);
     else query = query.neq('status', 'skipped');
 
