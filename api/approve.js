@@ -5,7 +5,7 @@ export default async function handler(req, res) {
 
   const auth = await requireUser(req);
   if (auth.error) return res.status(auth.status).json({ error: auth.error });
-  const { sb } = auth;
+  const { sb, workspace } = auth;
 
   const { id, status, email_draft, notes, follow_up, contacted_at } = req.body || {};
   if (!id) return res.status(400).json({ error: 'id is required' });
@@ -26,6 +26,16 @@ export default async function handler(req, res) {
       .single();
 
     if (error) return res.status(500).json({ error: error.message });
+
+    // Fire webhook (fire-and-forget — never fail the request because of it)
+    if (workspace?.webhook_url) {
+      fetch(workspace.webhook_url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event: 'lead.updated', lead: data, workspace_id: workspace.id }),
+      }).catch(e => console.error('Webhook error:', e.message));
+    }
+
     res.status(200).json({ lead: data });
   } catch (err) {
     res.status(500).json({ error: err.message });

@@ -98,6 +98,15 @@
         class="w-full bg-slate-50 rounded-lg px-3 py-2.5 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-purple-400 resize-none mb-3"></textarea>
     </div>
 
+    <details class="mb-4">
+      <summary class="text-xs text-gray-400 font-medium cursor-pointer hover:text-gray-600 select-none">⚙ Integrace (Make.com / Zapier webhook)</summary>
+      <div class="mt-2">
+        <input id="ws-webhook" type="url" placeholder="https://hook.eu1.make.com/..."
+          class="w-full bg-slate-50 rounded-lg px-3 py-2.5 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-purple-400">
+        <p class="text-xs text-gray-400 mt-1">Při každé změně stavu leadu pošleme data na tuto URL.</p>
+      </div>
+    </details>
+
     <div id="ws-error" class="hidden text-xs text-red-500 mb-3"></div>
 
     <div class="flex gap-2 mt-2">
@@ -135,7 +144,27 @@
 <main class="max-w-7xl mx-auto px-4 py-6">
 
   <!-- Stats -->
-  <div id="stats" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6"></div>
+  <div id="stats" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-2"></div>
+
+  <!-- Analytics funnel (toggle) -->
+  <div class="flex justify-end mb-4">
+    <button onclick="toggleAnalytics()" id="analytics-btn"
+      class="text-xs text-gray-400 hover:text-purple-600 font-medium transition-colors">
+      📊 Detailní přehled ▾
+    </button>
+  </div>
+  <div id="analytics-panel" class="hidden bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-6">
+    <div class="grid md:grid-cols-2 gap-6">
+      <div>
+        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Konverzní funnel</h3>
+        <div id="funnel-bars" class="space-y-2"></div>
+      </div>
+      <div>
+        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Top kategorie</h3>
+        <div id="cat-stats" class="space-y-1.5"></div>
+      </div>
+    </div>
+  </div>
 
   <div class="lg:grid lg:grid-cols-[300px_1fr] lg:gap-6 lg:items-start">
 
@@ -231,8 +260,14 @@
     <!-- ── MAIN ────────────────────────────────────────────────────────────── -->
     <section>
 
-      <!-- Pipeline tabs -->
-      <div id="tabs" class="flex gap-1 bg-gray-200/70 p-1 rounded-xl w-fit mb-4 flex-wrap"></div>
+      <!-- Pipeline tabs + bulk toggle -->
+      <div class="flex items-center gap-3 mb-4 flex-wrap">
+        <div id="tabs" class="flex gap-1 bg-gray-200/70 p-1 rounded-xl flex-wrap"></div>
+        <button onclick="toggleSelectMode()" id="select-mode-btn"
+          class="text-xs px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-500 hover:border-purple-300 hover:text-purple-600 font-medium transition-colors">
+          ☑ Vybrat
+        </button>
+      </div>
 
       <!-- Cards -->
       <div id="cards" class="space-y-3"></div>
@@ -274,6 +309,25 @@
 <!-- Toast -->
 <div id="toast-wrap" class="fixed bottom-6 inset-x-0 flex justify-center pointer-events-none z-50">
   <div id="toast" class="hidden text-white text-sm px-5 py-2.5 rounded-full shadow-xl"></div>
+</div>
+
+<!-- Bulk action bar -->
+<div id="bulk-bar" class="hidden fixed bottom-0 inset-x-0 z-40 bg-gray-900 text-white px-4 py-3 flex items-center justify-between gap-3 shadow-2xl">
+  <span id="bulk-count" class="text-sm font-semibold"></span>
+  <div class="flex gap-2">
+    <button onclick="bulkApprove()"
+      class="bg-teal-500 hover:bg-teal-400 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+      ✓ Schválit vše
+    </button>
+    <button onclick="bulkSkip()"
+      class="bg-gray-600 hover:bg-gray-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+      Přeskočit vše
+    </button>
+    <button onclick="toggleSelectMode()"
+      class="text-gray-400 hover:text-white text-sm px-3 py-2 rounded-lg transition-colors">
+      Zrušit
+    </button>
+  </div>
 </div>
 
 <script>
@@ -362,6 +416,7 @@ function openWsModal(onboarding = false) {
     document.getElementById('ws-website').value = workspace.website || '';
     document.getElementById('ws-pitch').value = workspace.pitch || '';
     document.getElementById('ws-icp').value = workspace.icp || '';
+    document.getElementById('ws-webhook').value = workspace.webhook_url || '';
     document.querySelector(`input[name="ws-mode"][value="${workspace.scoring_mode || 'web'}"]`).checked = true;
   }
   syncIcpVisibility();
@@ -402,6 +457,7 @@ async function saveWorkspace() {
     company_name, sender_name, pitch, scoring_mode,
     icp: icp || null,
     website: document.getElementById('ws-website').value.trim() || null,
+    webhook_url: document.getElementById('ws-webhook').value.trim() || null,
   };
 
   const btn = document.getElementById('ws-save');
@@ -652,8 +708,8 @@ function toggleEdit(id) {
 function renderStats() {
   const count = s => (leadsByStatus[s] || []).length;
   const all = Object.values(leadsByStatus).flat();
-  const contacted = count('contacted') + count('replied') + count('meeting') + count('won') + count('lost');
-  const replied   = count('replied') + count('meeting') + count('won') + count('lost');
+  const contacted = count('contacted') + count('replied') + count('meeting') + count('won');
+  const replied   = count('replied') + count('meeting') + count('won');
   const rate = contacted ? Math.round(replied / contacted * 100) : null;
 
   const stat = (label, value, accent = '') => `
@@ -668,6 +724,114 @@ function renderStats() {
     stat('Odpovědělo', replied, 'text-teal-600') +
     stat('Úspěšnost odpovědí', rate === null ? '—' : rate + ' %', 'text-teal-600') +
     stat('Vyhráno', count('won'), 'text-green-600');
+
+  renderFunnel(count, all);
+}
+
+function renderFunnel(count, all) {
+  // Funnel stages
+  const stages = [
+    { key: 'pending',   label: 'Ke schválení', color: 'bg-purple-500' },
+    { key: 'approved',  label: 'Schválené',    color: 'bg-blue-500'   },
+    { key: 'contacted', label: 'Osloveno',     color: 'bg-amber-500'  },
+    { key: 'replied',   label: 'Odpovědělo',   color: 'bg-teal-500'   },
+    { key: 'meeting',   label: 'Schůzka',      color: 'bg-indigo-500' },
+    { key: 'won',       label: 'Vyhráno',      color: 'bg-green-500'  },
+  ];
+  const max = Math.max(1, ...stages.map(s => count(s.key)));
+
+  document.getElementById('funnel-bars').innerHTML = stages.map((s, i) => {
+    const n = count(s.key);
+    const prev = i > 0 ? count(stages[i-1].key) : null;
+    const conv = prev ? Math.round(n / prev * 100) : null;
+    const pct = Math.round(n / max * 100);
+    return `
+      <div class="flex items-center gap-2">
+        <div class="w-24 text-xs text-gray-500 text-right shrink-0">${s.label}</div>
+        <div class="flex-1 bg-gray-100 rounded-full h-5 relative overflow-hidden">
+          <div class="${s.color} h-full rounded-full transition-all" style="width:${pct}%"></div>
+        </div>
+        <div class="w-14 text-right shrink-0">
+          <span class="text-sm font-bold text-gray-700">${n}</span>
+          ${conv !== null ? `<span class="text-xs text-gray-400 ml-1">${conv}%</span>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+
+  // Top categories
+  const catMap = {};
+  all.forEach(l => { if (l.category) catMap[l.category] = (catMap[l.category] || 0) + 1; });
+  const sorted = Object.entries(catMap).sort((a,b) => b[1]-a[1]).slice(0, 8);
+  const catMax = Math.max(1, ...sorted.map(([,n]) => n));
+
+  document.getElementById('cat-stats').innerHTML = sorted.length
+    ? sorted.map(([cat, n]) => `
+        <div class="flex items-center gap-2">
+          <div class="w-28 text-xs text-gray-500 truncate shrink-0">${esc(cat)}</div>
+          <div class="flex-1 bg-gray-100 rounded-full h-3 overflow-hidden">
+            <div class="bg-purple-300 h-full rounded-full" style="width:${Math.round(n/catMax*100)}%"></div>
+          </div>
+          <div class="text-xs font-semibold text-gray-600 w-5 text-right shrink-0">${n}</div>
+        </div>`).join('')
+    : '<p class="text-xs text-gray-300">Zatím žádná data.</p>';
+}
+
+let analyticsOpen = false;
+function toggleAnalytics() {
+  analyticsOpen = !analyticsOpen;
+  document.getElementById('analytics-panel').classList.toggle('hidden', !analyticsOpen);
+  document.getElementById('analytics-btn').textContent = analyticsOpen ? '📊 Skrýt přehled ▴' : '📊 Detailní přehled ▾';
+}
+
+// ── Bulk actions ──────────────────────────────────────────────────────────────
+
+let selectMode = false;
+let selectedIds = new Set();
+
+function toggleSelectMode() {
+  selectMode = !selectMode;
+  selectedIds.clear();
+  const btn = document.getElementById('select-mode-btn');
+  btn.textContent = selectMode ? '✕ Zrušit výběr' : '☑ Vybrat';
+  btn.className = selectMode
+    ? 'text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors bg-purple-700 text-white border-purple-700'
+    : 'text-xs px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-500 hover:border-purple-300 hover:text-purple-600 font-medium transition-colors';
+  document.getElementById('bulk-bar').classList.add('hidden');
+  render();
+}
+
+function toggleSelect(id) {
+  if (selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id);
+  const bar = document.getElementById('bulk-bar');
+  if (selectedIds.size > 0) {
+    bar.classList.remove('hidden');
+    document.getElementById('bulk-count').textContent = `${selectedIds.size} vybraných`;
+  } else {
+    bar.classList.add('hidden');
+  }
+  const cb = document.getElementById(`cb-${id}`);
+  if (cb) cb.checked = selectedIds.has(id);
+}
+
+async function bulkApprove() {
+  if (!selectedIds.size) return;
+  const ids = [...selectedIds];
+  for (const id of ids) await patchLead(id, { status: 'approved' });
+  toast(`Schváleno ${ids.length} leadů ✓`);
+  toggleSelectMode();
+  await loadLeads();
+}
+
+async function bulkSkip() {
+  if (!selectedIds.size) return;
+  const ids = [...selectedIds];
+  for (const id of ids) {
+    await patchLead(id, { status: 'skipped' });
+    delete leadsByStatus.pending;
+  }
+  toast(`Přeskočeno ${ids.length} leadů`);
+  toggleSelectMode();
+  await loadLeads();
 }
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
@@ -879,9 +1043,14 @@ function render() {
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 slide-up" id="card-${lead.id}">
 
       <div class="flex items-start justify-between gap-3 mb-1.5">
-        <div class="min-w-0">
-          <div class="font-semibold text-gray-800 truncate">${esc(lead.company)}</div>
-          <div class="text-xs text-gray-400 mt-0.5">${[lead.location, lead.category].filter(Boolean).map(esc).join(' · ')}</div>
+        <div class="flex items-start gap-2.5 min-w-0">
+          ${selectMode ? `<input type="checkbox" id="cb-${lead.id}" ${selectedIds.has(lead.id) ? 'checked' : ''}
+            onclick="toggleSelect('${lead.id}')"
+            class="mt-1 w-4 h-4 accent-purple-600 shrink-0 cursor-pointer">` : ''}
+          <div class="min-w-0">
+            <div class="font-semibold text-gray-800 truncate">${esc(lead.company)}</div>
+            <div class="text-xs text-gray-400 mt-0.5">${[lead.location, lead.category].filter(Boolean).map(esc).join(' · ')}</div>
+          </div>
         </div>
         <div class="flex items-center gap-1.5 shrink-0">
           ${followUpBadge(lead)}

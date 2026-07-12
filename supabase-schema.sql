@@ -30,6 +30,9 @@ create policy "own leads" on leads
   for all using (workspace_id in (select id from workspaces where owner = auth.uid()))
   with check (workspace_id in (select id from workspaces where owner = auth.uid()));
 
--- 4. PO PRVNÍ REGISTRACI (Golden Purple účet) si přiřaď stará data:
+-- 4. Webhook URL pro integrace (Make.com, Zapier, n8n)
+alter table workspaces add column if not exists webhook_url text;
+
+-- 5. PO PRVNÍ REGISTRACI (Golden Purple účet) si přiřaď stará data:
 -- update leads set workspace_id = (select id from workspaces limit 1)
 --   where workspace_id is null;
