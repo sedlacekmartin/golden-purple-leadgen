@@ -456,6 +456,50 @@
   </div>
 </div>
 
+<!-- Per-lead offer modal -->
+<div id="offer-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-4" onclick="if(event.target===this)closeOfferModal()">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-5">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <p class="font-semibold text-slate-900" id="offer-modal-title">Nabídka pro firmu</p>
+        <p class="text-xs text-slate-400 mt-0.5">Prázdné pole = použije se výchozí hodnota ze Šablony nabídky</p>
+      </div>
+      <button onclick="closeOfferModal()" class="text-slate-400 hover:text-slate-600 text-lg leading-none">✕</button>
+    </div>
+
+    <div class="space-y-3">
+      <div>
+        <label class="text-xs font-medium text-slate-500 block mb-1">Položky nabídky (každá na nový řádek)</label>
+        <textarea id="om-items" rows="4" placeholder="Ponechat výchozí ze šablony…"
+          class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 resize-none"></textarea>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs font-medium text-slate-500 block mb-1">Cena přeškrtnutá (Kč)</label>
+          <input id="om-price-full" type="number" placeholder="Výchozí ze šablony"
+            class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+        </div>
+        <div>
+          <label class="text-xs font-medium text-slate-500 block mb-1">Cena nabídky (Kč)</label>
+          <input id="om-price-offer" type="number" placeholder="Výchozí ze šablony"
+            class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+        </div>
+      </div>
+      <div>
+        <label class="text-xs font-medium text-slate-500 block mb-1">Text tlačítka CTA</label>
+        <input id="om-cta" type="text" placeholder="Výchozí ze šablony"
+          class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+      </div>
+    </div>
+
+    <div class="flex gap-2 mt-5">
+      <button onclick="saveLeadOffer()" class="btn-primary flex-1 py-2 text-sm">Uložit nabídku</button>
+      <button onclick="clearLeadOffer()" class="border border-slate-200 text-slate-500 px-4 py-2 rounded-xl text-sm hover:bg-slate-50 transition-colors">Reset</button>
+      <button onclick="closeOfferModal()" class="border border-slate-200 text-slate-500 px-4 py-2 rounded-xl text-sm hover:bg-slate-50 transition-colors">Zrušit</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div id="toast-wrap" class="fixed bottom-6 inset-x-0 flex justify-center pointer-events-none z-50">
   <div id="toast" class="hidden text-white text-sm px-5 py-2.5 rounded-full shadow-xl"></div>
@@ -741,6 +785,58 @@ function closeSkipModal() {
   document.getElementById('skip-modal').classList.add('hidden');
   skipTargetId = null;
   skipBulkIds = [];
+}
+
+// ── Per-lead offer ────────────────────────────────────────────────────────────
+
+let offerTargetId = null;
+
+function showOfferModal(id) {
+  offerTargetId = id;
+  const lead = Object.values(leadsByStatus).flat().find(l => l.id === id);
+  if (!lead) return;
+
+  document.getElementById('offer-modal-title').textContent = `Nabídka pro ${lead.company}`;
+
+  const lo = lead.lead_offer || {};
+  document.getElementById('om-items').value      = lo.items ? lo.items.join('\n') : '';
+  document.getElementById('om-price-full').value  = lo.price_full  || '';
+  document.getElementById('om-price-offer').value = lo.price_offer || '';
+  document.getElementById('om-cta').value         = lo.cta         || '';
+
+  document.getElementById('offer-modal').classList.remove('hidden');
+}
+
+function closeOfferModal() {
+  document.getElementById('offer-modal').classList.add('hidden');
+  offerTargetId = null;
+}
+
+async function saveLeadOffer() {
+  if (!offerTargetId) return;
+  const itemsRaw   = document.getElementById('om-items').value.trim();
+  const priceFull  = parseInt(document.getElementById('om-price-full').value)  || null;
+  const priceOffer = parseInt(document.getElementById('om-price-offer').value) || null;
+  const cta        = document.getElementById('om-cta').value.trim() || null;
+
+  const lead_offer = {};
+  if (itemsRaw)   lead_offer.items       = itemsRaw.split('\n').map(s => s.trim()).filter(Boolean);
+  if (priceFull)  lead_offer.price_full  = priceFull;
+  if (priceOffer) lead_offer.price_offer = priceOffer;
+  if (cta)        lead_offer.cta         = cta;
+
+  await patchLead(offerTargetId, { lead_offer: Object.keys(lead_offer).length ? lead_offer : null });
+  toast('Nabídka uložena ✓');
+  closeOfferModal();
+  await loadLeads();
+}
+
+async function clearLeadOffer() {
+  if (!offerTargetId) return;
+  await patchLead(offerTargetId, { lead_offer: null });
+  toast('Nabídka resetována na výchozí');
+  closeOfferModal();
+  await loadLeads();
 }
 
 async function confirmSkip() {
@@ -1242,6 +1338,10 @@ function followUpBadge(lead) {
 function actionButtons(lead) {
   // DISABLED: mockupBtn — re-enable with modal when mockup feature is turned back on
   // const mockupBtn = `<button onclick="showMockup('${lead.id}', this)" class="border border-purple-200 hover:bg-purple-50 text-purple-600 px-3 py-2 rounded-xl text-sm font-medium transition-colors whitespace-nowrap">🎨 Návrh webu</button>`;
+  const offerBtn = lead.offer_token
+    ? `<button onclick="showOfferModal('${lead.id}')"
+        class="border ${lead.lead_offer ? 'border-amber-300 bg-amber-50 text-amber-700' : 'border-slate-200 hover:bg-slate-50 text-slate-500'} px-3 py-2 rounded-xl text-sm font-medium transition-colors whitespace-nowrap">✏️ Nabídka</button>`
+    : '';
   const copyBtn = `<button onclick="copyDraft('${lead.id}')"
     class="border border-slate-200 hover:bg-slate-50 text-slate-500 px-3 py-2 rounded-xl text-sm font-medium transition-colors">📋</button>`;
   const followUp = `<input type="date" value="${lead.follow_up || ''}" onchange="saveFollowUp('${lead.id}', this.value)"
@@ -1252,12 +1352,12 @@ function actionButtons(lead) {
     case 'pending': return `
       <button onclick="approve('${lead.id}')" class="btn-primary flex-1 py-2 text-sm">✓ Schválit</button>
       <button onclick="skip('${lead.id}')" class="flex-1 border border-slate-200 hover:bg-slate-50 text-slate-500 py-2 rounded-xl text-sm font-medium transition-colors">Přeskočit</button>
-      `;
+      ${offerBtn}`;
     case 'approved': return `
       <button onclick="markContacted('${lead.id}')" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white py-2 rounded-xl text-sm font-semibold transition-colors">📨 Osloveno</button>
       ${copyBtn}
-      <button onclick="moveTo('${lead.id}','pending','Vráceno ke schválení')" class="border border-slate-200 hover:bg-red-50 hover:text-red-400 text-slate-400 px-3 py-2 rounded-xl text-sm transition-colors">Vrátit</button>
-      `;
+      ${offerBtn}
+      <button onclick="moveTo('${lead.id}','pending','Vráceno ke schválení')" class="border border-slate-200 hover:bg-red-50 hover:text-red-400 text-slate-400 px-3 py-2 rounded-xl text-sm transition-colors">Vrátit</button>`;
     case 'contacted': {
       const fuDue = lead.followup_due_at && new Date(lead.followup_due_at) <= new Date();
       const fuReady = !!lead.followup_draft;
@@ -1269,9 +1369,9 @@ function actionButtons(lead) {
       return `
         <button onclick="moveTo('${lead.id}','replied','Super, odpověděl! 💬')" class="flex-1 bg-teal-600 hover:bg-teal-700 text-white py-2 rounded-xl text-sm font-semibold transition-colors">💬 Odpověděl</button>
         ${fuBtn}
+        ${offerBtn}
         ${followUp}
-        ${copyBtn}
-        `;
+        ${copyBtn}`;
     }
     case 'replied': return `
       <button onclick="moveTo('${lead.id}','meeting','Schůzka domluvena 🤝')" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-xl text-sm font-semibold transition-colors">🤝 Schůzka</button>
@@ -1345,7 +1445,7 @@ function render() {
                        : `<span>🌐 Nemá web</span>`}
         ${lead.offer_token ? `<a href="/nabidka/${esc(lead.offer_token)}" target="_blank"
           class="text-amber-600 font-medium hover:underline ${lead.offer_clicked_at ? 'opacity-60' : ''}">
-          🎁 Nabídka${lead.offer_clicked_at ? ' ✓ kliknuto' : lead.offer_viewed_at ? ' 👁 zobrazeno' : ''}</a>` : ''}
+          🎁 Nabídka${lead.offer_clicked_at ? ' ✓ kliknuto' : lead.offer_viewed_at ? ' 👁 zobrazeno' : ''}${lead.lead_offer ? ' ✏️' : ''}</a>` : ''}
       </div>
 
       <details class="card-sec bg-slate-50 rounded-xl mb-2" ${isPending ? 'open' : ''}>

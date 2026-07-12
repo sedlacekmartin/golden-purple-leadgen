@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   if (auth.error) return res.status(auth.status).json({ error: auth.error });
   const { sb, workspace } = auth;
 
-  const { id, status, email_draft, notes, follow_up, contacted_at, skip_reason } = req.body || {};
+  const { id, status, email_draft, notes, follow_up, contacted_at, skip_reason, lead_offer } = req.body || {};
   if (!id) return res.status(400).json({ error: 'id is required' });
 
   try {
@@ -18,6 +18,7 @@ export default async function handler(req, res) {
     if (follow_up !== undefined) updates.follow_up = follow_up || null;
     if (contacted_at !== undefined) updates.contacted_at = contacted_at;
     if (skip_reason !== undefined) updates.skip_reason = skip_reason || null;
+    if (lead_offer !== undefined) updates.lead_offer = lead_offer || null;
 
     const { data, error } = await sb
       .from('leads')

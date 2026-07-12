@@ -52,9 +52,13 @@ alter table leads add column if not exists offer_token text unique;
 alter table leads add column if not exists offer_viewed_at timestamptz;
 alter table leads add column if not exists offer_clicked_at timestamptz;
 
--- 11. Konfigurace nabídky ve workspace
+-- 11. Konfigurace nabídky ve workspace (výchozí šablona)
 alter table workspaces add column if not exists offer jsonb;
 -- Struktura offer: { items: ["...", "..."], price_full: 15000, price_offer: 2900, validity_hours: 72, cta: "Mám zájem" }
+
+-- 12. Per-lead přepis nabídky (přebíjí workspace.offer pro konkrétní firmu)
+alter table leads add column if not exists lead_offer jsonb;
+-- Struktura stejná jako workspace.offer, jen pole která chceš přepsat (ostatní se vezmou z workspace.offer)
 
 -- 8. PO PRVNÍ REGISTRACI (Golden Purple účet) si přiřaď stará data:
 -- update leads set workspace_id = (select id from workspaces limit 1)

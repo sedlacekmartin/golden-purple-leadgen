@@ -9,7 +9,7 @@ export default async function handler(req, res) {
 
   const { data: lead, error } = await sb
     .from('leads')
-    .select('id, company, location, category, mockup_url, offer_token, offer_viewed_at, offer_clicked_at, workspace_id')
+    .select('id, company, location, category, mockup_url, offer_token, offer_viewed_at, offer_clicked_at, workspace_id, lead_offer')
     .eq('offer_token', token)
     .single();
 
@@ -37,7 +37,8 @@ export default async function handler(req, res) {
   }
 
   // GET — vrátí data pro stránku
-  const offer = workspace.offer;
+  // Per-lead offer přebíjí workspace defaults (jen pole která jsou nastavená)
+  const offer = { ...workspace.offer, ...(lead.lead_offer || {}) };
   const validUntil = lead.offer_viewed_at
     ? new Date(new Date(lead.offer_viewed_at).getTime() + (offer.validity_hours || 72) * 3600 * 1000).toISOString()
     : new Date(Date.now() + (offer.validity_hours || 72) * 3600 * 1000).toISOString();
