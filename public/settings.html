@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nastavení — LeadGen AI</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin { animation: spin 0.8s linear infinite; }
+    .snav { display: flex; align-items: center; gap: 0.625rem; padding: 0.5rem 0.75rem; border-radius: 0.75rem; font-size: 13.5px; font-weight: 500; width: 100%; color: #475569; transition: background 0.15s, color 0.15s; cursor: pointer; text-align: left; background: none; border: none; text-decoration: none; }
+    .snav:hover { background: #f8fafc; color: #0f172a; }
+    .snav.active { background: #fef3c7; color: #92400e; font-weight: 600; }
+    .snav-icon { width: 26px; height: 26px; border-radius: 7px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .field-label { display: block; font-size: 12px; font-weight: 500; color: #6b7280; margin-bottom: 4px; }
+    .field-input { width: 100%; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 9px 12px; font-size: 14px; outline: none; transition: border-color 0.15s, box-shadow 0.15s; }
+    .field-input:focus { border-color: #a78bfa; box-shadow: 0 0 0 2px #ede9fe; }
+    .card { background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; margin-bottom: 16px; }
+    .card-title { font-size: 14px; font-weight: 700; color: #1e293b; margin-bottom: 4px; }
+    .card-desc { font-size: 12px; color: #94a3b8; margin-bottom: 16px; }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+
+<!-- Mobile sidebar backdrop -->
+<div id="sidebar-backdrop" class="hidden fixed inset-0 bg-black/40 z-40 md:hidden" onclick="closeSidebar()"></div>
+
+<!-- Left nav sidebar -->
+<nav id="sidebar" class="fixed top-0 left-0 h-full w-56 bg-white border-r border-slate-100 flex flex-col z-50 -translate-x-full md:translate-x-0 transition-transform duration-200 shadow-sm">
+
+  <div class="px-4 py-4 border-b border-slate-100 shrink-0">
+    <div class="flex items-center gap-2 mb-2.5">
+      <span class="text-amber-400 font-bold text-lg">◆</span>
+      <span class="font-bold text-slate-900 text-[14px] tracking-tight">LeadGen.ai</span>
+    </div>
+    <p id="header-company" class="text-xs font-semibold text-slate-700 truncate mb-2">—</p>
+    <span class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-500">Free plán</span>
+  </div>
+
+  <div class="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
+
+    <a href="/app" class="snav">
+      <span class="snav-icon" style="background:#fef3c7;color:#b45309">
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/></svg>
+      </span>
+      Leady
+    </a>
+
+    <a href="/app" class="snav" onclick="event.preventDefault();if(confirm('Opustit nastavení?'))window.location='/app'">
+      <span class="snav-icon" style="background:#f0fdf4;color:#059669">
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>
+      </span>
+      Analytika
+    </a>
+
+    <div class="my-2 border-t border-slate-100"></div>
+
+    <a href="/settings" class="snav active">
+      <span class="snav-icon" style="background:#f1f5f9;color:#475569">
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
+      </span>
+      Nastavení
+    </a>
+
+    <a id="admin-link" href="/admin" target="_blank" class="hidden snav">
+      <span class="snav-icon" style="background:#fef9c3;color:#a16207">
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+      </span>
+      Admin
+    </a>
+
+  </div>
+
+  <div class="px-4 py-4 border-t border-slate-100 shrink-0">
+    <div class="flex items-center gap-2.5 mb-3">
+      <div id="user-avatar" class="w-7 h-7 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-black font-black text-xs shrink-0">?</div>
+      <div class="min-w-0">
+        <p id="user-email-display" class="text-[11px] font-bold text-slate-700 truncate">—</p>
+        <p class="text-[11px] text-slate-400">Vlastník</p>
+      </div>
+    </div>
+    <button onclick="signOut()" class="w-full text-left text-xs text-slate-400 hover:text-red-500 transition-colors py-0.5">Odhlásit se</button>
+  </div>
+</nav>
+
+<!-- Mobile top bar -->
+<div class="sticky top-0 z-30 flex h-12 items-center gap-3 border-b border-slate-200 bg-white px-4 md:hidden shadow-sm">
+  <button onclick="openSidebar()" class="flex flex-col gap-[5px] p-1 shrink-0" aria-label="Otevřít menu">
+    <span class="block h-[2px] w-5 rounded-full bg-slate-600"></span>
+    <span class="block h-[2px] w-5 rounded-full bg-slate-600"></span>
+    <span class="block h-[2px] w-5 rounded-full bg-slate-600"></span>
+  </button>
+  <div class="flex items-center gap-1.5 min-w-0">
+    <span class="text-amber-400 font-bold shrink-0">◆</span>
+    <span class="font-bold text-slate-900 text-sm">Nastavení</span>
+  </div>
+</div>
+
+<!-- Main content -->
+<main class="md:ml-56 min-h-screen px-4 py-5 sm:px-6 sm:py-7 max-w-4xl">
+
+  <!-- Loading -->
+  <div id="loading" class="flex items-center justify-center py-24">
+    <div class="w-6 h-6 border-2 border-purple-300 border-t-purple-700 rounded-full spin"></div>
+  </div>
+
+  <!-- Content -->
+  <div id="content" class="hidden">
+
+    <!-- Page header -->
+    <div class="flex items-center gap-3 mb-7">
+      <a href="/app" class="text-slate-400 hover:text-slate-700 transition-colors text-sm">← Leady</a>
+      <div class="w-px h-4 bg-slate-200"></div>
+      <div>
+        <h1 id="page-title" class="text-[22px] font-semibold tracking-tight text-slate-900">Nastavení firmy</h1>
+        <p class="text-[13px] text-slate-400 mt-0.5">Tyhle údaje řídí, jak agent píše e-maily a hodnotí leady.</p>
+      </div>
+    </div>
+
+    <!-- Onboarding banner -->
+    <div id="onboarding-banner" class="hidden bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-5 flex items-start gap-3">
+      <div class="text-2xl shrink-0">👋</div>
+      <div>
+        <p class="text-sm font-semibold text-amber-800">Vítej! Nastav si firmu, než začneš hledat leady.</p>
+        <p class="text-xs text-amber-600 mt-0.5">Vyplň základní údaje a klikni na Uložit.</p>
+      </div>
+    </div>
+
+    <!-- Card: Profil firmy -->
+    <div class="card">
+      <p class="card-title">Profil firmy</p>
+      <p class="card-desc">Základní údaje o tvé firmě a odesílateli e-mailů.</p>
+
+      <label class="field-label">Název firmy *</label>
+      <input id="ws-company" type="text" placeholder="např. KOVOTECH s.r.o." class="field-input mb-4">
+
+      <div class="grid sm:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label class="field-label">Jméno odesílatele *</label>
+          <input id="ws-sender" type="text" placeholder="např. Martin" class="field-input">
+        </div>
+        <div>
+          <label class="field-label">Web firmy</label>
+          <input id="ws-website" type="text" placeholder="např. kovotech.cz" class="field-input">
+        </div>
+      </div>
+
+      <label class="field-label">Co nabízíte? *</label>
+      <textarea id="ws-pitch" rows="3" placeholder="např. CNC obrábění kovů na zakázku, malé a střední série"
+        class="field-input resize-none"></textarea>
+    </div>
+
+    <!-- Card: Způsob hodnocení -->
+    <div class="card">
+      <p class="card-title">Způsob hodnocení leadů</p>
+      <p class="card-desc">Jak má AI rozhodovat, které firmy jsou pro tebe zajímavé?</p>
+
+      <div class="space-y-2">
+        <label class="flex items-start gap-3 p-3.5 rounded-xl border border-slate-200 cursor-pointer has-[:checked]:border-purple-400 has-[:checked]:bg-purple-50/50 transition-colors">
+          <input type="radio" name="ws-mode" value="web" checked class="accent-purple-600 mt-0.5 shrink-0">
+          <span>
+            <span class="text-sm font-semibold text-slate-800 block mb-0.5">Slabá online prezentace</span>
+            <span class="text-xs text-slate-400">Pro agentury prodávající weby a marketing — vysoké skóre = firma bez webu / recenzí.</span>
+          </span>
+        </label>
+        <label class="flex items-start gap-3 p-3.5 rounded-xl border border-slate-200 cursor-pointer has-[:checked]:border-purple-400 has-[:checked]:bg-purple-50/50 transition-colors">
+          <input type="radio" name="ws-mode" value="icp" class="accent-purple-600 mt-0.5 shrink-0">
+          <span>
+            <span class="text-sm font-semibold text-slate-800 block mb-0.5">Shoda s ideálním zákazníkem (AI)</span>
+            <span class="text-xs text-slate-400">Popiš svého ideálního zákazníka a AI ohodnotí každou firmu podle shody.</span>
+          </span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Card: Persona / ICP (only visible in ICP mode) -->
+    <div id="ws-icp-wrap" class="hidden">
+
+      <!-- Persona builder -->
+      <div class="card">
+        <p class="card-title">Persona ideálního zákazníka</p>
+        <p class="card-desc">Vymysli konkrétního člověka, kterému prodáváš. AI z toho vytvoří scoring popis.</p>
+
+        <div class="bg-gradient-to-br from-purple-50 to-slate-50 border border-purple-100 rounded-xl p-4 mb-4">
+          <div class="flex items-center gap-3 mb-4">
+            <div id="persona-avatar" class="w-12 h-12 bg-purple-200 rounded-full flex items-center justify-center text-2xl select-none shrink-0">👤</div>
+            <div class="flex-1 min-w-0">
+              <input id="p-name" type="text" placeholder="Jméno persony, např. Martin Strojař"
+                oninput="updatePersonaAvatar()"
+                class="w-full bg-white rounded-lg px-3 py-2 text-sm font-semibold border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400 mb-1">
+              <p class="text-xs text-slate-400">Vymyšlené jméno — pomůže ti personu lépe vnímat jako reálnou osobu</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 mb-4">
+            <div>
+              <label class="field-label" style="color:#7c3aed">Role / pozice</label>
+              <select id="p-role" class="field-input" style="border-color:#ddd6fe">
+                <option value="">— vyber —</option>
+                <option>Majitel / jednatel</option>
+                <option>Obchodní ředitel</option>
+                <option>Výrobní ředitel</option>
+                <option>Nákupní ředitel</option>
+                <option>IT ředitel / CTO</option>
+                <option>Marketing manager</option>
+                <option>Provozní ředitel</option>
+                <option>Jiné</option>
+              </select>
+            </div>
+            <div>
+              <label class="field-label" style="color:#7c3aed">Věk</label>
+              <select id="p-age" class="field-input" style="border-color:#ddd6fe">
+                <option value="">— vyber —</option>
+                <option>25–35</option>
+                <option>35–45</option>
+                <option>45–55</option>
+                <option>55+</option>
+              </select>
+            </div>
+            <div>
+              <label class="field-label" style="color:#7c3aed">Velikost firmy</label>
+              <select id="p-size" class="field-input" style="border-color:#ddd6fe">
+                <option value="">— vyber —</option>
+                <option>1–10 zaměstnanců</option>
+                <option>10–50 zaměstnanců</option>
+                <option>50–200 zaměstnanců</option>
+                <option>200+ zaměstnanců</option>
+              </select>
+            </div>
+            <div>
+              <label class="field-label" style="color:#7c3aed">Obor / odvětví</label>
+              <input id="p-industry" type="text" placeholder="např. strojírenství, IT, stavebnictví"
+                class="field-input" style="border-color:#ddd6fe">
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="field-label mb-2" style="color:#7c3aed">😤 Hlavní problémy / bolesti zákazníka</label>
+            <div class="space-y-2">
+              <input id="p-pain1" type="text" placeholder="např. nemá čas řešit marketing" class="field-input" style="border-color:#ddd6fe;background:white">
+              <input id="p-pain2" type="text" placeholder="např. hledá nové zákazníky mimo doporučení" class="field-input" style="border-color:#ddd6fe;background:white">
+              <input id="p-pain3" type="text" placeholder="např. zastaralý web nebo žádný" class="field-input" style="border-color:#ddd6fe;background:white">
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="field-label mb-2" style="color:#7c3aed">🎯 Co chce dosáhnout</label>
+            <div class="space-y-2">
+              <input id="p-goal1" type="text" placeholder="např. stabilní přísun nových zakázek" class="field-input" style="border-color:#ddd6fe;background:white">
+              <input id="p-goal2" type="text" placeholder="např. vypadat profesionálně online" class="field-input" style="border-color:#ddd6fe;background:white">
+            </div>
+          </div>
+
+          <button type="button" onclick="generateIcpFromPersona()" id="persona-gen-btn"
+            class="w-full bg-purple-700 hover:bg-purple-800 disabled:opacity-60 text-white text-sm font-bold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2">
+            <span>🪄</span> Vygenerovat scoring popis z persony
+          </button>
+        </div>
+
+        <label class="field-label flex items-center justify-between mb-1">
+          <span>Scoring popis (pro AI)</span>
+          <span class="text-slate-300 font-normal">Automaticky doplněno — můžeš upravit</span>
+        </label>
+        <textarea id="ws-icp" rows="4" placeholder="Vygeneruj popis z persony výše, nebo napiš ručně…"
+          class="field-input resize-none"></textarea>
+      </div>
+    </div>
+
+    <!-- Card: Integrace -->
+    <div class="card">
+      <p class="card-title">Integrace</p>
+      <p class="card-desc">Webhook pro Make.com, Zapier nebo vlastní systém.</p>
+
+      <label class="field-label">Webhook URL</label>
+      <input id="ws-webhook" type="url" placeholder="https://hook.eu1.make.com/…" class="field-input mb-2">
+      <p class="text-xs text-slate-400">Při každé změně stavu leadu pošleme data na tuto URL.</p>
+    </div>
+
+    <!-- Error + Save -->
+    <div id="ws-error" class="hidden text-sm text-red-500 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4"></div>
+
+    <div class="flex items-center gap-3">
+      <button onclick="saveWorkspace()" id="ws-save"
+        class="bg-purple-700 hover:bg-purple-800 disabled:opacity-60 text-white px-8 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center gap-2">
+        <span id="save-label">Uložit</span>
+      </button>
+      <a href="/app" class="text-sm text-slate-400 hover:text-slate-600 transition-colors">Zrušit</a>
+      <div id="save-success" class="hidden text-sm text-teal-600 font-medium">✓ Uloženo</div>
+    </div>
+
+  </div>
+</main>
+
+<!-- Toast -->
+<div id="toast-wrap" class="fixed bottom-6 inset-x-0 flex justify-center pointer-events-none z-50">
+  <div id="toast" class="hidden text-white text-sm px-5 py-2.5 rounded-full shadow-xl"></div>
+</div>
+
+<script>
+const SUPABASE_URL  = 'https://ktevejpvblfhyulgawki.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt0ZXZlanB2YmxmaHl1bGdhd2tpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2OTI4MzQsImV4cCI6MjA5NzI2ODgzNH0.-8xmLoiExiqj0DX0M8P3vtYYZOVWN6M_zd1um4R-s_Y';
+const ADMIN_EMAILS  = ['sedlacek_m@centrum.cz', 'sedlacekmartin1@gmail.com'];
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+let session = null;
+let workspace = null;
+
+function openSidebar() {
+  document.getElementById('sidebar').classList.remove('-translate-x-full');
+  document.getElementById('sidebar-backdrop').classList.remove('hidden');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.add('-translate-x-full');
+  document.getElementById('sidebar-backdrop').classList.add('hidden');
+}
+
+async function signOut() {
+  await sb.auth.signOut();
+  window.location.href = '/app';
+}
+
+function toast(msg, err = false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `text-white text-sm px-5 py-2.5 rounded-full shadow-xl ${err ? 'bg-red-500' : 'bg-slate-900'}`;
+  el.classList.remove('hidden');
+  setTimeout(() => el.classList.add('hidden'), 3000);
+}
+
+function syncIcpVisibility() {
+  const mode = document.querySelector('input[name="ws-mode"]:checked')?.value;
+  document.getElementById('ws-icp-wrap').classList.toggle('hidden', mode !== 'icp');
+}
+document.addEventListener('change', e => { if (e.target.name === 'ws-mode') syncIcpVisibility(); });
+
+const ROLE_AVATARS = {
+  'Majitel / jednatel': '👔', 'Obchodní ředitel': '🤝', 'Výrobní ředitel': '🏭',
+  'Nákupní ředitel': '📦', 'IT ředitel / CTO': '💻', 'Marketing manager': '📣',
+  'Provozní ředitel': '⚙️', 'Jiné': '👤',
+};
+
+function updatePersonaAvatar() {
+  const role = document.getElementById('p-role')?.value;
+  const el = document.getElementById('persona-avatar');
+  if (el) el.textContent = ROLE_AVATARS[role] || '👤';
+}
+document.addEventListener('change', e => { if (e.target.id === 'p-role') updatePersonaAvatar(); });
+
+function getPersonaFromForm() {
+  return {
+    name:     document.getElementById('p-name')?.value.trim() || '',
+    role:     document.getElementById('p-role')?.value || '',
+    age:      document.getElementById('p-age')?.value || '',
+    size:     document.getElementById('p-size')?.value || '',
+    industry: document.getElementById('p-industry')?.value.trim() || '',
+    pain1:    document.getElementById('p-pain1')?.value.trim() || '',
+    pain2:    document.getElementById('p-pain2')?.value.trim() || '',
+    pain3:    document.getElementById('p-pain3')?.value.trim() || '',
+    goal1:    document.getElementById('p-goal1')?.value.trim() || '',
+    goal2:    document.getElementById('p-goal2')?.value.trim() || '',
+  };
+}
+
+function fillPersonaForm(p) {
+  if (!p) return;
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+  set('p-name', p.name); set('p-role', p.role); set('p-age', p.age);
+  set('p-size', p.size); set('p-industry', p.industry);
+  set('p-pain1', p.pain1); set('p-pain2', p.pain2); set('p-pain3', p.pain3);
+  set('p-goal1', p.goal1); set('p-goal2', p.goal2);
+  updatePersonaAvatar();
+}
+
+async function generateIcpFromPersona() {
+  const persona = getPersonaFromForm();
+  if (!persona.industry && !persona.pain1) {
+    toast('Vyplň alespoň obor a jeden problém', true); return;
+  }
+  const btn = document.getElementById('persona-gen-btn');
+  btn.innerHTML = '<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full inline-block spin"></span> Generuji…';
+  btn.disabled = true;
+  try {
+    const res = await fetch('/api/generate-icp', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        persona,
+        company: document.getElementById('ws-company').value.trim(),
+        pitch:   document.getElementById('ws-pitch').value.trim(),
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Chyba');
+    document.getElementById('ws-icp').value = data.icp;
+    toast('Scoring popis vygenerován ✓');
+  } catch(e) {
+    toast(e.message, true);
+  } finally {
+    btn.innerHTML = '<span>🪄</span> Vygenerovat scoring popis z persony';
+    btn.disabled = false;
+  }
+}
+
+function fillForm() {
+  if (!workspace) return;
+  document.getElementById('ws-company').value = workspace.company_name || '';
+  document.getElementById('ws-sender').value  = workspace.sender_name || '';
+  document.getElementById('ws-website').value = workspace.website || '';
+  document.getElementById('ws-pitch').value   = workspace.pitch || '';
+  document.getElementById('ws-icp').value     = workspace.icp || '';
+  document.getElementById('ws-webhook').value = workspace.webhook_url || '';
+  const modeEl = document.querySelector(`input[name="ws-mode"][value="${workspace.scoring_mode || 'web'}"]`);
+  if (modeEl) modeEl.checked = true;
+  fillPersonaForm(workspace.persona);
+  syncIcpVisibility();
+}
+
+async function saveWorkspace() {
+  const company_name  = document.getElementById('ws-company').value.trim();
+  const sender_name   = document.getElementById('ws-sender').value.trim();
+  const pitch         = document.getElementById('ws-pitch').value.trim();
+  const scoring_mode  = document.querySelector('input[name="ws-mode"]:checked')?.value || 'web';
+  const icp           = document.getElementById('ws-icp').value.trim();
+  const errEl         = document.getElementById('ws-error');
+
+  if (!company_name || !sender_name || !pitch) {
+    errEl.textContent = 'Vyplň název firmy, jméno odesílatele a co nabízíte.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  if (scoring_mode === 'icp' && !icp) {
+    errEl.textContent = 'Pro AI režim vyplň nebo vygeneruj scoring popis.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  errEl.classList.add('hidden');
+
+  const persona = getPersonaFromForm();
+  const hasPersona = Object.values(persona).some(v => v);
+  const fields = {
+    company_name, sender_name, pitch, scoring_mode,
+    icp: icp || null,
+    website:     document.getElementById('ws-website').value.trim() || null,
+    webhook_url: document.getElementById('ws-webhook').value.trim() || null,
+    persona:     hasPersona ? persona : null,
+  };
+
+  const btn = document.getElementById('ws-save');
+  const label = document.getElementById('save-label');
+  btn.disabled = true;
+  label.textContent = 'Ukládám…';
+  try {
+    const { data: { user } } = await sb.auth.getUser();
+    const { data, error } = workspace
+      ? await sb.from('workspaces').update(fields).eq('id', workspace.id).select().single()
+      : await sb.from('workspaces').insert({ ...fields, owner: user.id }).select().single();
+    if (error) throw error;
+    workspace = data;
+
+    const success = document.getElementById('save-success');
+    success.classList.remove('hidden');
+    setTimeout(() => success.classList.add('hidden'), 3000);
+    toast('Uloženo ✓');
+  } catch (e) {
+    errEl.textContent = e.message;
+    errEl.classList.remove('hidden');
+  } finally {
+    btn.disabled = false;
+    label.textContent = 'Uložit';
+  }
+}
+
+(async function init() {
+  const { data } = await sb.auth.getSession();
+  session = data.session;
+  if (!session) { window.location.href = '/app'; return; }
+
+  // Sidebar user info
+  const email = session.user.email || '';
+  document.getElementById('user-avatar').textContent = email[0]?.toUpperCase() || '?';
+  document.getElementById('user-email-display').textContent = email;
+
+  if (ADMIN_EMAILS.includes(email.toLowerCase())) {
+    document.getElementById('admin-link').classList.remove('hidden');
+  }
+
+  // Load workspace
+  const { data: wsData } = await sb.from('workspaces').select('*').maybeSingle();
+  workspace = wsData;
+
+  document.getElementById('loading').classList.add('hidden');
+  document.getElementById('content').classList.remove('hidden');
+
+  if (!workspace) {
+    document.getElementById('page-title').textContent = 'Nastav si firmu';
+    document.getElementById('onboarding-banner').classList.remove('hidden');
+  } else {
+    document.getElementById('header-company').textContent = workspace.company_name;
+    fillForm();
+  }
+})();
+</script>
+</body>
+</html>
