@@ -34,6 +34,56 @@ async function searchCompanies(location, category, limit) {
   }));
 }
 
+// ── Feedback loop: historická data z vlastních leadů ─────────────────────────
+
+async function getWorkspaceInsights(sb, workspaceId) {
+  const { data: leads } = await sb
+    .from('leads')
+    .select('status, category, skip_reason')
+    .eq('workspace_id', workspaceId)
+    .in('status', ['approved', 'skipped'])
+    .order('created_at', { ascending: false })
+    .limit(200);
+
+  if (!leads || leads.length < 5) return null;
+
+  const total = leads.length;
+  const approved = leads.filter(l => l.status === 'approved').length;
+  const approvalRate = Math.round(approved / total * 100);
+
+  const catMap = {};
+  leads.forEach(l => {
+    if (!l.category) return;
+    if (!catMap[l.category]) catMap[l.category] = { approved: 0, total: 0 };
+    catMap[l.category].total++;
+    if (l.status === 'approved') catMap[l.category].approved++;
+  });
+  const bestCats = Object.entries(catMap)
+    .filter(([, v]) => v.total >= 3)
+    .sort((a, b) => (b[1].approved / b[1].total) - (a[1].approved / a[1].total))
+    .slice(0, 3)
+    .map(([cat, v]) => `${cat} (${Math.round(v.approved / v.total * 100)} % approval)`);
+
+  const reasonMap = {};
+  leads.filter(l => l.skip_reason).forEach(l => {
+    l.skip_reason.split(', ').forEach(r => { if (r) reasonMap[r] = (reasonMap[r] || 0) + 1; });
+  });
+  const topReasons = Object.entries(reasonMap).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([r]) => r);
+
+  return { total, approvalRate, bestCats, topReasons };
+}
+
+function formatInsights(insights) {
+  if (!insights) return '';
+  const lines = [
+    `\nHistorický kontext (z posledních ${insights.total} rozhodnutých leadů):`,
+    `- Celkový approval rate: ${insights.approvalRate} %`,
+    insights.bestCats.length ? `- Nejlépe fungující kategorie: ${insights.bestCats.join(', ')}` : null,
+    insights.topReasons.length ? `- Nejčastější důvody přeskočení: ${insights.topReasons.join(', ')}` : null,
+  ];
+  return lines.filter(Boolean).join('\n');
+}
+
 // ── Scoring: režim "web" (slabá online prezentace) ───────────────────────────
 
 function scoreLeadWeb(company) {
@@ -68,7 +118,7 @@ function scoreLeadWeb(company) {
 
 // ── Scoring: režim "icp" (AI shoda s ideálním zákazníkem) ────────────────────
 
-async function scoreLeadsIcp(companies, workspace) {
+async function scoreLeadsIcp(companies, workspace, insights) {
   const list = companies.map((c, i) => ({
     i,
     name: c.name,
@@ -100,8 +150,10 @@ Persona ideálního zákazníka:
 Co nabízí: ${workspace.pitch || 'neuvedeno'}
 Ideální zákazník (scoring popis): ${workspace.icp}
 ${personaContext}
+${formatInsights(insights)}
 
 Ohodnoť každou firmu skóre 0–100 podle shody s ideálním zákazníkem a personou.
+${insights ? 'Zohledni historický kontext — kategorie s vyšším approval rate jsou pravděpodobně lepší shoda.' : ''}
 Uveď max 3 krátké konkrétní důvody česky (proč sedí nebo nesedí).
 
 Firmy: ${JSON.stringify(list)}
@@ -149,7 +201,7 @@ function pickOpening(company) {
 
 // ── Draft e-mailu z profilu workspace ────────────────────────────────────────
 
-async function draftEmail(company, workspace) {
+async function draftEmail(company, workspace, insights) {
   const opening = pickOpening(company);
 
   const companyContext = [
@@ -160,6 +212,7 @@ async function draftEmail(company, workspace) {
   ].filter(Boolean).join(', ');
 
   const m = workspace.messaging || {};
+  const p = workspace.persona || {};
   const ctaMap = {
     konzultace: 'nezávazný hovor nebo bezplatnou konzultaci',
     demo: 'krátkou demo ukázku výsledků',
@@ -169,18 +222,25 @@ async function draftEmail(company, workspace) {
   };
   const ctaPhrase = ctaMap[m.cta_type] || 'krátký hovor';
 
+  const insightHint = insights && insights.bestCats.some(c => c.startsWith(company.category))
+    ? `Poznámka: kategorie "${company.category}" má historicky nadprůměrný approval rate — tato firma má vysoký potenciál.`
+    : '';
+
   const msg = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 400,
     messages: [{
       role: 'user',
       content: `Napiš krátký B2B cold email v češtině. Přímo, bez klišé, lidsky.
+${insightHint}
 
 Odesílatel: ${workspace.sender_name}, firma ${workspace.company_name}${workspace.website ? ` (${workspace.website})` : ''}
 Co nabízí: ${workspace.pitch || 'služby pro firmy'}
 ${m.problem ? `Problém, který pojmenováváme: ${m.problem}` : ''}
 ${m.proof ? `Důkaz / reference: ${m.proof}` : ''}
 ${m.objection ? `Nejčastější námitka a odpověď: ${m.objection}` : ''}
+${p.trigger ? `Buying trigger — kdy zákazník potřebu cítí nejvíc: ${p.trigger}` : ''}
+${p.priority ? `Co musí nastat, aby se z toho stala priorita: ${p.priority}` : ''}
 
 Příjemce: ${company.name}, ${company.location}, obor: ${company.category}
 ${companyContext ? `Kontext o firmě: ${companyContext}` : ''}
@@ -241,15 +301,19 @@ export default async function handler(req, res) {
     // 2) obohať: e-mail z webu + ARES (paralelně)
     const enriched = await mapConcurrent(fresh, 5, enrichCompany);
 
-    // 3) scoring podle režimu workspace
+    // 3) feedback loop — historické insights z vlastních leadů
+    const insights = await getWorkspaceInsights(sb, workspace.id);
+    if (insights) console.log(`Insights: ${insights.approvalRate}% approval, bestCats: ${insights.bestCats.join(', ')}`);
+
+    // 4) scoring podle režimu workspace
     const scored = isIcp
-      ? await scoreLeadsIcp(enriched, workspace)
+      ? await scoreLeadsIcp(enriched, workspace, insights)
       : enriched.map(scoreLeadWeb);
 
-    // 4) drafty paralelně
+    // 5) drafty paralelně
     const withDrafts = await mapConcurrent(scored, 5, async c => ({
       ...c,
-      email_draft: await draftEmail(c, workspace).catch(err => {
+      email_draft: await draftEmail(c, workspace, insights).catch(err => {
         console.error('Draft error:', c.name, err.message);
         return null;
       }),

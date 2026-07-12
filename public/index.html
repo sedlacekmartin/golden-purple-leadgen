@@ -174,14 +174,24 @@
     </button>
   </div>
   <div id="analytics-panel" class="hidden card p-5 mb-6">
-    <div class="grid md:grid-cols-2 gap-6">
+    <div class="grid md:grid-cols-2 gap-6 mb-6">
       <div>
         <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">Konverzní funnel</h3>
         <div id="funnel-bars" class="space-y-2"></div>
       </div>
       <div>
-        <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">Top kategorie</h3>
+        <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">Kategorie — schvalovací rate</h3>
         <div id="cat-stats" class="space-y-1.5"></div>
+      </div>
+    </div>
+    <div class="border-t border-slate-100 pt-5 grid md:grid-cols-2 gap-6">
+      <div>
+        <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">Celkový approval rate</h3>
+        <div id="approval-rate-stat"></div>
+      </div>
+      <div>
+        <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">Nejčastější důvody přeskočení</h3>
+        <div id="skip-reasons-stats" class="space-y-1.5"></div>
       </div>
     </div>
   </div>
@@ -425,6 +435,36 @@
     <div class="flex justify-end gap-2">
       <a id="mockup-dl" href="" download class="bg-white/10 hover:bg-white/20 text-white text-sm px-4 py-2 rounded-lg transition-colors">⬇ Stáhnout návrh</a>
       <button id="mockup-regen" onclick="regenMockup()" class="bg-purple-600 hover:bg-purple-700 text-white text-sm px-4 py-2 rounded-lg transition-colors">↻ Regenerovat návrh</button>
+    </div>
+  </div>
+</div>
+
+<!-- Skip reason dialog -->
+<div id="skip-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-4" onclick="if(event.target===this)closeSkipModal()">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5">
+    <p class="font-semibold text-slate-900 mb-1">Proč přeskakuješ tento lead?</p>
+    <p class="text-xs text-slate-400 mb-4">Pomůže to vylepšit scoring pro příště.</p>
+    <div class="space-y-2.5 mb-5">
+      <label class="flex items-center gap-3 cursor-pointer p-2 rounded-xl hover:bg-slate-50 transition-colors">
+        <input type="checkbox" id="sr-obor" class="accent-purple-600 w-4 h-4 shrink-0">
+        <span class="text-sm text-slate-700">Nesedí obor / zaměření</span>
+      </label>
+      <label class="flex items-center gap-3 cursor-pointer p-2 rounded-xl hover:bg-slate-50 transition-colors">
+        <input type="checkbox" id="sr-lokalita" class="accent-purple-600 w-4 h-4 shrink-0">
+        <span class="text-sm text-slate-700">Špatná lokalita</span>
+      </label>
+      <label class="flex items-center gap-3 cursor-pointer p-2 rounded-xl hover:bg-slate-50 transition-colors">
+        <input type="checkbox" id="sr-velikost" class="accent-purple-600 w-4 h-4 shrink-0">
+        <span class="text-sm text-slate-700">Nevhodná velikost firmy</span>
+      </label>
+      <label class="flex items-center gap-3 cursor-pointer p-2 rounded-xl hover:bg-slate-50 transition-colors">
+        <input type="checkbox" id="sr-jiny" class="accent-purple-600 w-4 h-4 shrink-0">
+        <span class="text-sm text-slate-700">Jiný důvod</span>
+      </label>
+    </div>
+    <div class="flex gap-2">
+      <button onclick="confirmSkip()" class="btn-primary flex-1 py-2 text-sm">Přeskočit</button>
+      <button onclick="closeSkipModal()" class="flex-1 border border-slate-200 text-slate-500 py-2 rounded-xl text-sm font-medium hover:bg-slate-50 transition-colors">Zrušit</button>
     </div>
   </div>
 </div>
@@ -679,9 +719,38 @@ async function generateFollowUp(id) {
   }
 }
 
-async function skip(id) {
-  await patchLead(id, { status: 'skipped' });
+let skipTargetId = null;
+
+function skip(id) {
+  skipTargetId = id;
+  ['sr-obor', 'sr-lokalita', 'sr-velikost', 'sr-jiny'].forEach(cbId => {
+    const el = document.getElementById(cbId);
+    if (el) el.checked = false;
+  });
+  document.getElementById('skip-modal').classList.remove('hidden');
+}
+
+function closeSkipModal() {
+  document.getElementById('skip-modal').classList.add('hidden');
+  skipTargetId = null;
+}
+
+async function confirmSkip() {
+  if (!skipTargetId) return;
+  const reasons = [];
+  if (document.getElementById('sr-obor').checked)     reasons.push('nesedí obor');
+  if (document.getElementById('sr-lokalita').checked) reasons.push('špatná lokalita');
+  if (document.getElementById('sr-velikost').checked) reasons.push('nevhodná velikost');
+  if (document.getElementById('sr-jiny').checked)     reasons.push('jiný důvod');
+  const skip_reason = reasons.join(', ') || null;
+  const id = skipTargetId;
+  closeSkipModal();
+
+  const lead = (leadsByStatus.pending || []).find(l => l.id === id);
+  if (lead) { lead.status = 'skipped'; lead.skip_reason = skip_reason; }
+  await patchLead(id, { status: 'skipped', skip_reason });
   leadsByStatus.pending = (leadsByStatus.pending || []).filter(l => l.id !== id);
+  (leadsByStatus.skipped = leadsByStatus.skipped || []).unshift({ ...lead, status: 'skipped', skip_reason });
   renderTabs(); renderStats(); render();
   toast('Přeskočeno');
 }
@@ -885,22 +954,64 @@ function renderFunnel(count, all) {
       </div>`;
   }).join('');
 
-  // Top categories
+  // Categories by approval rate
   const catMap = {};
-  all.forEach(l => { if (l.category) catMap[l.category] = (catMap[l.category] || 0) + 1; });
-  const sorted = Object.entries(catMap).sort((a,b) => b[1]-a[1]).slice(0, 8);
-  const catMax = Math.max(1, ...sorted.map(([,n]) => n));
+  all.forEach(l => {
+    if (!l.category) return;
+    if (!catMap[l.category]) catMap[l.category] = { approved: 0, total: 0 };
+    catMap[l.category].total++;
+    if (l.status === 'approved') catMap[l.category].approved++;
+  });
+  const catSorted = Object.entries(catMap)
+    .filter(([, v]) => v.total >= 2)
+    .sort((a, b) => (b[1].approved / b[1].total) - (a[1].approved / a[1].total))
+    .slice(0, 8);
 
-  document.getElementById('cat-stats').innerHTML = sorted.length
-    ? sorted.map(([cat, n]) => `
+  document.getElementById('cat-stats').innerHTML = catSorted.length
+    ? catSorted.map(([cat, v]) => {
+        const rate = Math.round(v.approved / v.total * 100);
+        return `
+          <div class="flex items-center gap-2">
+            <div class="w-28 text-xs text-slate-500 truncate shrink-0">${esc(cat)}</div>
+            <div class="flex-1 bg-slate-100 rounded-full h-3 overflow-hidden">
+              <div class="bg-purple-400 h-full rounded-full" style="width:${rate}%"></div>
+            </div>
+            <div class="text-xs font-semibold text-slate-600 w-10 text-right shrink-0">${rate} %</div>
+          </div>`;
+      }).join('')
+    : '<p class="text-xs text-slate-300">Zatím málo dat (min. 2 leady / kategorie).</p>';
+
+  // Approval rate overall
+  const decidedLeads = all.filter(l => l.status === 'approved' || l.status === 'skipped');
+  const approvedCount = decidedLeads.filter(l => l.status === 'approved').length;
+  const approvalRate = decidedLeads.length > 0 ? Math.round(approvedCount / decidedLeads.length * 100) : null;
+  document.getElementById('approval-rate-stat').innerHTML = approvalRate !== null
+    ? `<div class="flex items-end gap-2">
+        <span class="text-4xl font-black ${approvalRate >= 30 ? 'text-green-600' : approvalRate >= 15 ? 'text-amber-500' : 'text-red-500'}">${approvalRate} %</span>
+        <span class="text-xs text-slate-400 mb-1.5">${approvedCount} z ${decidedLeads.length} rozhodnutých leadů</span>
+      </div>
+      <p class="text-xs text-slate-400 mt-1">${approvalRate >= 30 ? 'Scoring dobře sedí na Váš ICP.' : approvalRate >= 15 ? 'Scoring funguje, ale má prostor.' : 'Scoring neodpovídá Vašemu ICP — zkuste upravit nastavení.'}</p>`
+    : '<p class="text-xs text-slate-300">Zatím žádná schválená ani přeskočená data.</p>';
+
+  // Skip reasons breakdown
+  const skipReasonMap = {};
+  all.filter(l => l.skip_reason).forEach(l => {
+    l.skip_reason.split(', ').forEach(r => {
+      if (r) skipReasonMap[r] = (skipReasonMap[r] || 0) + 1;
+    });
+  });
+  const skipSorted = Object.entries(skipReasonMap).sort((a, b) => b[1] - a[1]);
+  const skipMax = Math.max(1, ...skipSorted.map(([, n]) => n));
+  document.getElementById('skip-reasons-stats').innerHTML = skipSorted.length
+    ? skipSorted.map(([reason, n]) => `
         <div class="flex items-center gap-2">
-          <div class="w-28 text-xs text-slate-500 truncate shrink-0">${esc(cat)}</div>
+          <div class="w-32 text-xs text-slate-500 truncate shrink-0">${esc(reason)}</div>
           <div class="flex-1 bg-slate-100 rounded-full h-3 overflow-hidden">
-            <div class="bg-purple-300 h-full rounded-full" style="width:${Math.round(n/catMax*100)}%"></div>
+            <div class="bg-red-300 h-full rounded-full" style="width:${Math.round(n/skipMax*100)}%"></div>
           </div>
-          <div class="text-xs font-semibold text-slate-600 w-5 text-right shrink-0">${n}</div>
+          <div class="text-xs font-semibold text-slate-500 w-5 text-right shrink-0">${n}×</div>
         </div>`).join('')
-    : '<p class="text-xs text-slate-300">Zatím žádná data.</p>';
+    : '<p class="text-xs text-slate-300">Zatím žádné přeskočené leady s důvodem.</p>';
 }
 
 let analyticsOpen = false;

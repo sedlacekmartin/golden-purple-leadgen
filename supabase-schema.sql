@@ -44,6 +44,9 @@ alter table leads add column if not exists followup_draft text;
 -- 7. Messaging mapa (JSON: problem, proof, objection, cta_type)
 alter table workspaces add column if not exists messaging jsonb;
 
+-- 9. Důvod přeskočení leadu (feedback loop)
+alter table leads add column if not exists skip_reason text;
+
 -- 8. PO PRVNÍ REGISTRACI (Golden Purple účet) si přiřaď stará data:
 -- update leads set workspace_id = (select id from workspaces limit 1)
 --   where workspace_id is null;
