@@ -93,8 +93,50 @@
     </div>
 
     <div id="ws-icp-wrap" class="hidden">
-      <label class="text-xs text-gray-400 font-medium mb-1 block">Ideální zákazník</label>
-      <textarea id="ws-icp" rows="2" placeholder="např. výrobní firmy 10–100 zaměstnanců, které nakupují obráběné díly"
+      <div class="flex items-center justify-between mb-1">
+        <label class="text-xs text-gray-400 font-medium">Popis ideálního zákazníka</label>
+        <button type="button" onclick="toggleIcpWizard()"
+          class="text-xs text-purple-600 hover:text-purple-800 font-semibold flex items-center gap-1">
+          🪄 Pomoc s popisem
+        </button>
+      </div>
+
+      <!-- ICP Wizard — 4 otázky → Claude sestaví popis -->
+      <div id="icp-wizard" class="hidden bg-purple-50 border border-purple-200 rounded-xl p-3 mb-2 space-y-2">
+        <p class="text-xs text-purple-700 font-medium mb-2">Odpověz na 4 otázky — AI za tebe napíše popis zákazníka:</p>
+        <div>
+          <label class="text-xs text-gray-500 mb-0.5 block">1. V jakém oboru pracují tví zákazníci?</label>
+          <input id="icp-q1" type="text" placeholder="např. výroba, stavebnictví, IT, obchod…"
+            class="w-full bg-white rounded-lg px-3 py-2 text-sm border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400">
+        </div>
+        <div>
+          <label class="text-xs text-gray-500 mb-0.5 block">2. Jak velká firma? (počet zaměstnanců)</label>
+          <select id="icp-q2" class="w-full bg-white rounded-lg px-3 py-2 text-sm border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400">
+            <option value="">— vyber —</option>
+            <option>1–10 (mikrofirmy, živnostníci)</option>
+            <option>10–50 (malé firmy)</option>
+            <option>50–200 (střední firmy)</option>
+            <option>200+ (velké firmy)</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs text-gray-500 mb-0.5 block">3. Jaký problém jim řešíš?</label>
+          <input id="icp-q3" type="text" placeholder="např. nemají web, špatná viditelnost online, zastaralý marketing…"
+            class="w-full bg-white rounded-lg px-3 py-2 text-sm border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400">
+        </div>
+        <div>
+          <label class="text-xs text-gray-500 mb-0.5 block">4. Proč zákazníci vybírají právě tebe?</label>
+          <input id="icp-q4" type="text" placeholder="např. rychlost, cena, specializace na obor, reference…"
+            class="w-full bg-white rounded-lg px-3 py-2 text-sm border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400">
+        </div>
+        <button type="button" onclick="generateIcp()"
+          id="icp-gen-btn"
+          class="w-full bg-purple-700 hover:bg-purple-800 disabled:opacity-60 text-white text-sm font-semibold py-2 rounded-lg transition-colors mt-1">
+          🪄 Vygenerovat popis
+        </button>
+      </div>
+
+      <textarea id="ws-icp" rows="3" placeholder="Popis se doplní automaticky, nebo napiš ručně…"
         class="w-full bg-slate-50 rounded-lg px-3 py-2.5 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-purple-400 resize-none mb-3"></textarea>
     </div>
 
@@ -460,6 +502,41 @@ function closeWsModal() {
 function syncIcpVisibility() {
   const mode = document.querySelector('input[name="ws-mode"]:checked')?.value;
   document.getElementById('ws-icp-wrap').classList.toggle('hidden', mode !== 'icp');
+}
+
+function toggleIcpWizard() {
+  const w = document.getElementById('icp-wizard');
+  w.classList.toggle('hidden');
+}
+
+async function generateIcp() {
+  const q1 = document.getElementById('icp-q1').value.trim();
+  const q2 = document.getElementById('icp-q2').value;
+  const q3 = document.getElementById('icp-q3').value.trim();
+  const q4 = document.getElementById('icp-q4').value.trim();
+  if (!q1 || !q2 || !q3) { toast('Vyplň alespoň první 3 otázky', true); return; }
+
+  const btn = document.getElementById('icp-gen-btn');
+  btn.textContent = 'Generuji…'; btn.disabled = true;
+  try {
+    const res = await authFetch('/api/generate-icp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ q1, q2, q3, q4,
+        company: document.getElementById('ws-company').value.trim(),
+        pitch: document.getElementById('ws-pitch').value.trim(),
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Chyba');
+    document.getElementById('ws-icp').value = data.icp;
+    document.getElementById('icp-wizard').classList.add('hidden');
+    toast('Popis zákazníka vygenerován ✓');
+  } catch(e) {
+    toast(e.message, true);
+  } finally {
+    btn.textContent = '🪄 Vygenerovat popis'; btn.disabled = false;
+  }
 }
 document.addEventListener('change', e => { if (e.target.name === 'ws-mode') syncIcpVisibility(); });
 
