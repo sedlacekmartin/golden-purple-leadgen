@@ -9,31 +9,39 @@ export default async function handler(req, res) {
   const auth = await requireUser(req);
   if (auth.error) return res.status(auth.status).json({ error: auth.error });
 
-  const { q1, q2, q3, q4, company, pitch } = req.body || {};
-  if (!q1 || !q2 || !q3) return res.status(400).json({ error: 'Chybí odpovědi na otázky' });
+  const { persona, company, pitch } = req.body || {};
+
+  if (!persona) return res.status(400).json({ error: 'Chybí data persony' });
+
+  const pains = [persona.pain1, persona.pain2, persona.pain3].filter(Boolean);
+  const goals = [persona.goal1, persona.goal2].filter(Boolean);
 
   try {
     const msg = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 300,
+      max_tokens: 350,
       messages: [{
         role: 'user',
-        content: `Firma "${company || 'neznámá'}" nabízí: ${pitch || 'služby'}
+        content: `Firma "${company || 'neznámá'}" nabízí: ${pitch || 'služby pro firmy'}
 
-Na základě těchto odpovědí napiš stručný, konkrétní popis ideálního zákazníka (ICP) pro AI lead scoring:
+Vytvořili jsme personu ideálního zákazníka:
+Jméno: ${persona.name || 'neznámé'}
+Role: ${persona.role || 'neznámá'}
+Věk: ${persona.age || 'neznámý'}
+Velikost firmy: ${persona.size || 'neznámá'}
+Obor: ${persona.industry || 'neznámý'}
+${pains.length ? `Problémy:\n${pains.map((p, i) => `${i+1}. ${p}`).join('\n')}` : ''}
+${goals.length ? `Cíle:\n${goals.map((g, i) => `${i+1}. ${g}`).join('\n')}` : ''}
 
-Obor zákazníků: ${q1}
-Velikost firmy: ${q2}
-Problém který řešíš: ${q3}
-${q4 ? `Proč tě vybírají: ${q4}` : ''}
+Napiš stručný, konkrétní scoring popis ideálního zákazníka pro AI lead scoring systém.
+Popis musí pomoci AI rozpoznat, zda konkrétní firma z Google Maps sedí na tuto personu.
 
 Pravidla:
-- Max 3 věty, max 80 slov
-- Konkrétní (obor, velikost, situace), žádné obecné fráze
-- Zaměř se na charakteristiky které pomůžou AI rozpoznat dobré leady
-- Piš česky, bez uvozovek, bez nadpisů — jen text popisu
-
-Příklad výstupu: "Výrobní firmy s 10–50 zaměstnanci v oborech kovo, plast nebo dřevo, které nemají vlastní marketingové oddělení. Typicky existují 5–20 let, mají slabou nebo žádnou online prezentaci a hledají způsob jak získat nové B2B zákazníky mimo osobní doporučení."`,
+- Max 4 věty, max 100 slov
+- Zaměř se na objektivně měřitelné znaky (obor, velikost, online přítomnost, situace)
+- Piš ve třetí osobě ("Firmy v oboru...", "Typicky se jedná o...")
+- Žádné firemní jargon, žádné buzzwordy
+- Piš česky, bez nadpisů, jen čistý text`,
       }],
     });
 

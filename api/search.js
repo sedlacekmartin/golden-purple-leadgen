@@ -82,6 +82,15 @@ async function scoreLeadsIcp(companies, workspace) {
     legal_form: c.legal_form,
   }));
 
+  const p = workspace.persona;
+  const personaContext = p ? `
+Persona ideálního zákazníka:
+- Jméno/typ: ${p.name || ''}
+- Role: ${p.role || ''}, věk: ${p.age || ''}
+- Firma: ${p.size || ''}, obor: ${p.industry || ''}
+- Problémy: ${[p.pain1, p.pain2, p.pain3].filter(Boolean).join('; ')}
+- Cíle: ${[p.goal1, p.goal2].filter(Boolean).join('; ')}` : '';
+
   const msg = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 4096,
@@ -89,10 +98,11 @@ async function scoreLeadsIcp(companies, workspace) {
       role: 'user',
       content: `Firma "${workspace.company_name}" hledá zákazníky.
 Co nabízí: ${workspace.pitch || 'neuvedeno'}
-Ideální zákazník: ${workspace.icp}
+Ideální zákazník (scoring popis): ${workspace.icp}
+${personaContext}
 
-Ohodnoť každou firmu skóre 0–100 podle shody s ideálním zákazníkem
-a uveď max 3 krátké důvody česky.
+Ohodnoť každou firmu skóre 0–100 podle shody s ideálním zákazníkem a personou.
+Uveď max 3 krátké konkrétní důvody česky (proč sedí nebo nesedí).
 
 Firmy: ${JSON.stringify(list)}
 

@@ -33,7 +33,10 @@ create policy "own leads" on leads
 -- 4. Webhook URL pro integrace (Make.com, Zapier, n8n)
 alter table workspaces add column if not exists webhook_url text;
 
--- 5. Follow-up sekvence
+-- 5. Persona zákazníka (JSON)
+alter table workspaces add column if not exists persona jsonb;
+
+-- 6. Follow-up sekvence
 alter table leads add column if not exists followup_count int default 0;
 alter table leads add column if not exists followup_due_at timestamptz;
 alter table leads add column if not exists followup_draft text;

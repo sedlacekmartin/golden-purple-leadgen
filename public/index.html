@@ -93,50 +93,95 @@
     </div>
 
     <div id="ws-icp-wrap" class="hidden">
-      <div class="flex items-center justify-between mb-1">
-        <label class="text-xs text-gray-400 font-medium">Popis ideálního zákazníka</label>
-        <button type="button" onclick="toggleIcpWizard()"
-          class="text-xs text-purple-600 hover:text-purple-800 font-semibold flex items-center gap-1">
-          🪄 Pomoc s popisem
+
+      <!-- Persona builder -->
+      <div class="bg-gradient-to-br from-purple-50 to-slate-50 border border-purple-100 rounded-2xl p-4 mb-3">
+        <div class="flex items-center gap-2 mb-3">
+          <div id="persona-avatar" class="w-10 h-10 bg-purple-200 rounded-full flex items-center justify-center text-xl select-none">👤</div>
+          <div class="flex-1 min-w-0">
+            <input id="p-name" type="text" placeholder="Jméno persony, např. Martin Strojař"
+              oninput="updatePersonaAvatar()"
+              class="w-full bg-white rounded-lg px-3 py-1.5 text-sm font-semibold border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400 mb-0.5">
+            <div class="text-xs text-gray-400">Vymyslené jméno — pomůže ti ji lépe vnímat jako reálnou osobu</div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 mb-2">
+          <div>
+            <label class="text-xs text-gray-500 mb-0.5 block">Role / pozice</label>
+            <select id="p-role" class="w-full bg-white rounded-lg px-2 py-1.5 text-sm border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400">
+              <option value="">— vyber —</option>
+              <option>Majitel / jednatel</option>
+              <option>Obchodní ředitel</option>
+              <option>Výrobní ředitel</option>
+              <option>Nákupní ředitel</option>
+              <option>IT ředitel / CTO</option>
+              <option>Marketing manager</option>
+              <option>Provozní ředitel</option>
+              <option>Jiné</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs text-gray-500 mb-0.5 block">Věk</label>
+            <select id="p-age" class="w-full bg-white rounded-lg px-2 py-1.5 text-sm border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400">
+              <option value="">— vyber —</option>
+              <option>25–35</option>
+              <option>35–45</option>
+              <option>45–55</option>
+              <option>55+</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs text-gray-500 mb-0.5 block">Velikost firmy</label>
+            <select id="p-size" class="w-full bg-white rounded-lg px-2 py-1.5 text-sm border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400">
+              <option value="">— vyber —</option>
+              <option>1–10 zaměstnanců</option>
+              <option>10–50 zaměstnanců</option>
+              <option>50–200 zaměstnanců</option>
+              <option>200+ zaměstnanců</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs text-gray-500 mb-0.5 block">Obor / odvětví</label>
+            <input id="p-industry" type="text" placeholder="např. strojírenství, IT, stavebnictví"
+              class="w-full bg-white rounded-lg px-2 py-1.5 text-sm border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400">
+          </div>
+        </div>
+
+        <div class="mb-2">
+          <label class="text-xs text-gray-500 font-medium mb-1 block">😤 Hlavní problémy / bolesti</label>
+          <div class="space-y-1.5">
+            <input id="p-pain1" type="text" placeholder="např. nemá čas řešit marketing"
+              class="w-full bg-white rounded-lg px-3 py-1.5 text-sm border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400">
+            <input id="p-pain2" type="text" placeholder="např. hledá nové zákazníky mimo doporučení"
+              class="w-full bg-white rounded-lg px-3 py-1.5 text-sm border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400">
+            <input id="p-pain3" type="text" placeholder="např. zastaralý web nebo žádný"
+              class="w-full bg-white rounded-lg px-3 py-1.5 text-sm border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400">
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="text-xs text-gray-500 font-medium mb-1 block">🎯 Co chce dosáhnout</label>
+          <div class="space-y-1.5">
+            <input id="p-goal1" type="text" placeholder="např. stabilní přísun nových zakázek"
+              class="w-full bg-white rounded-lg px-3 py-1.5 text-sm border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400">
+            <input id="p-goal2" type="text" placeholder="např. vypadat profesionálně online"
+              class="w-full bg-white rounded-lg px-3 py-1.5 text-sm border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400">
+          </div>
+        </div>
+
+        <button type="button" onclick="generateIcpFromPersona()" id="persona-gen-btn"
+          class="w-full bg-purple-700 hover:bg-purple-800 disabled:opacity-60 text-white text-sm font-bold py-2 rounded-xl transition-colors flex items-center justify-center gap-2">
+          <span>🪄</span> Vygenerovat scoring popis z persony
         </button>
       </div>
 
-      <!-- ICP Wizard — 4 otázky → Claude sestaví popis -->
-      <div id="icp-wizard" class="hidden bg-purple-50 border border-purple-200 rounded-xl p-3 mb-2 space-y-2">
-        <p class="text-xs text-purple-700 font-medium mb-2">Odpověz na 4 otázky — AI za tebe napíše popis zákazníka:</p>
-        <div>
-          <label class="text-xs text-gray-500 mb-0.5 block">1. V jakém oboru pracují tví zákazníci?</label>
-          <input id="icp-q1" type="text" placeholder="např. výroba, stavebnictví, IT, obchod…"
-            class="w-full bg-white rounded-lg px-3 py-2 text-sm border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400">
-        </div>
-        <div>
-          <label class="text-xs text-gray-500 mb-0.5 block">2. Jak velká firma? (počet zaměstnanců)</label>
-          <select id="icp-q2" class="w-full bg-white rounded-lg px-3 py-2 text-sm border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400">
-            <option value="">— vyber —</option>
-            <option>1–10 (mikrofirmy, živnostníci)</option>
-            <option>10–50 (malé firmy)</option>
-            <option>50–200 (střední firmy)</option>
-            <option>200+ (velké firmy)</option>
-          </select>
-        </div>
-        <div>
-          <label class="text-xs text-gray-500 mb-0.5 block">3. Jaký problém jim řešíš?</label>
-          <input id="icp-q3" type="text" placeholder="např. nemají web, špatná viditelnost online, zastaralý marketing…"
-            class="w-full bg-white rounded-lg px-3 py-2 text-sm border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400">
-        </div>
-        <div>
-          <label class="text-xs text-gray-500 mb-0.5 block">4. Proč zákazníci vybírají právě tebe?</label>
-          <input id="icp-q4" type="text" placeholder="např. rychlost, cena, specializace na obor, reference…"
-            class="w-full bg-white rounded-lg px-3 py-2 text-sm border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400">
-        </div>
-        <button type="button" onclick="generateIcp()"
-          id="icp-gen-btn"
-          class="w-full bg-purple-700 hover:bg-purple-800 disabled:opacity-60 text-white text-sm font-semibold py-2 rounded-lg transition-colors mt-1">
-          🪄 Vygenerovat popis
-        </button>
+      <!-- Výsledný ICP text pro AI scoring -->
+      <div class="mb-1 flex items-center justify-between">
+        <label class="text-xs text-gray-400 font-medium">Scoring popis (pro AI)</label>
+        <span class="text-xs text-gray-300">Automaticky doplněno — můžeš upravit</span>
       </div>
-
-      <textarea id="ws-icp" rows="3" placeholder="Popis se doplní automaticky, nebo napiš ručně…"
+      <textarea id="ws-icp" rows="3" placeholder="Vygeneruj popis z persony výše, nebo napiš ručně…"
         class="w-full bg-slate-50 rounded-lg px-3 py-2.5 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-purple-400 resize-none mb-3"></textarea>
     </div>
 
@@ -489,6 +534,7 @@ function openWsModal(onboarding = false) {
     document.getElementById('ws-pitch').value = workspace.pitch || '';
     document.getElementById('ws-icp').value = workspace.icp || '';
     document.getElementById('ws-webhook').value = workspace.webhook_url || '';
+    fillPersonaForm(workspace.persona);
     document.querySelector(`input[name="ws-mode"][value="${workspace.scoring_mode || 'web'}"]`).checked = true;
   }
   syncIcpVisibility();
@@ -504,38 +550,74 @@ function syncIcpVisibility() {
   document.getElementById('ws-icp-wrap').classList.toggle('hidden', mode !== 'icp');
 }
 
-function toggleIcpWizard() {
-  const w = document.getElementById('icp-wizard');
-  w.classList.toggle('hidden');
+// ── Persona builder ──────────────────────────────────────────────────────────
+
+const ROLE_AVATARS = {
+  'Majitel / jednatel': '👔', 'Obchodní ředitel': '🤝', 'Výrobní ředitel': '🏭',
+  'Nákupní ředitel': '📦', 'IT ředitel / CTO': '💻', 'Marketing manager': '📣',
+  'Provozní ředitel': '⚙️', 'Jiné': '👤',
+};
+
+function updatePersonaAvatar() {
+  const role = document.getElementById('p-role')?.value;
+  const avatar = ROLE_AVATARS[role] || '👤';
+  const el = document.getElementById('persona-avatar');
+  if (el) el.textContent = avatar;
+}
+document.addEventListener('change', e => { if (e.target.id === 'p-role') updatePersonaAvatar(); });
+
+function getPersonaFromForm() {
+  return {
+    name:     document.getElementById('p-name')?.value.trim() || '',
+    role:     document.getElementById('p-role')?.value || '',
+    age:      document.getElementById('p-age')?.value || '',
+    size:     document.getElementById('p-size')?.value || '',
+    industry: document.getElementById('p-industry')?.value.trim() || '',
+    pain1:    document.getElementById('p-pain1')?.value.trim() || '',
+    pain2:    document.getElementById('p-pain2')?.value.trim() || '',
+    pain3:    document.getElementById('p-pain3')?.value.trim() || '',
+    goal1:    document.getElementById('p-goal1')?.value.trim() || '',
+    goal2:    document.getElementById('p-goal2')?.value.trim() || '',
+  };
 }
 
-async function generateIcp() {
-  const q1 = document.getElementById('icp-q1').value.trim();
-  const q2 = document.getElementById('icp-q2').value;
-  const q3 = document.getElementById('icp-q3').value.trim();
-  const q4 = document.getElementById('icp-q4').value.trim();
-  if (!q1 || !q2 || !q3) { toast('Vyplň alespoň první 3 otázky', true); return; }
+function fillPersonaForm(p) {
+  if (!p) return;
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+  set('p-name', p.name); set('p-role', p.role); set('p-age', p.age);
+  set('p-size', p.size); set('p-industry', p.industry);
+  set('p-pain1', p.pain1); set('p-pain2', p.pain2); set('p-pain3', p.pain3);
+  set('p-goal1', p.goal1); set('p-goal2', p.goal2);
+  updatePersonaAvatar();
+}
 
-  const btn = document.getElementById('icp-gen-btn');
-  btn.textContent = 'Generuji…'; btn.disabled = true;
+async function generateIcpFromPersona() {
+  const persona = getPersonaFromForm();
+  if (!persona.industry && !persona.pain1) {
+    toast('Vyplň alespoň obor a jeden problém', true); return;
+  }
+  const btn = document.getElementById('persona-gen-btn');
+  btn.innerHTML = '<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full inline-block" style="animation:spin .8s linear infinite"></span> Generuji…';
+  btn.disabled = true;
   try {
     const res = await authFetch('/api/generate-icp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ q1, q2, q3, q4,
+      body: JSON.stringify({
+        persona,
         company: document.getElementById('ws-company').value.trim(),
-        pitch: document.getElementById('ws-pitch').value.trim(),
+        pitch:   document.getElementById('ws-pitch').value.trim(),
       }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Chyba');
     document.getElementById('ws-icp').value = data.icp;
-    document.getElementById('icp-wizard').classList.add('hidden');
-    toast('Popis zákazníka vygenerován ✓');
+    toast('Scoring popis vygenerován ✓');
   } catch(e) {
     toast(e.message, true);
   } finally {
-    btn.textContent = '🪄 Vygenerovat popis'; btn.disabled = false;
+    btn.innerHTML = '<span>🪄</span> Vygenerovat scoring popis z persony';
+    btn.disabled = false;
   }
 }
 document.addEventListener('change', e => { if (e.target.name === 'ws-mode') syncIcpVisibility(); });
@@ -560,11 +642,14 @@ async function saveWorkspace() {
   }
   errEl.classList.add('hidden');
 
+  const persona = getPersonaFromForm();
+  const hasPersona = Object.values(persona).some(v => v);
   const fields = {
     company_name, sender_name, pitch, scoring_mode,
     icp: icp || null,
     website: document.getElementById('ws-website').value.trim() || null,
     webhook_url: document.getElementById('ws-webhook').value.trim() || null,
+    persona: hasPersona ? persona : null,
   };
 
   const btn = document.getElementById('ws-save');
