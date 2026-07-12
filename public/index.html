@@ -41,7 +41,7 @@
   <!-- Nav -->
   <div class="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
 
-    <button class="snav active" id="snav-leads" onclick="closeSidebar()">
+    <button class="snav active" id="snav-leads" onclick="showView('leads')">
       <span class="snav-icon" style="background:#fef3c7;color:#b45309">
         <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/></svg>
       </span>
@@ -71,12 +71,12 @@
       Nastavení
     </a>
 
-    <a id="admin-link" href="/admin" target="_blank" class="hidden snav">
+    <button id="admin-link" onclick="showView('admin')" class="hidden snav">
       <span class="snav-icon" style="background:#fef9c3;color:#a16207">
         <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
       </span>
       Admin
-    </a>
+    </button>
 
   </div>
 
@@ -304,12 +304,15 @@
   <!-- Page header (desktop only) -->
   <div class="hidden md:flex items-start justify-between gap-4 mb-6">
     <div>
-      <h1 class="text-[24px] font-semibold tracking-tight text-slate-900">Leady</h1>
+      <h1 id="page-title" class="text-[24px] font-semibold tracking-tight text-slate-900">Leady</h1>
       <p id="page-date" class="mt-0.5 text-[13px] text-slate-400 capitalize"></p>
     </div>
-    <button onclick="loadLeads()" title="Obnovit"
+    <button id="page-refresh" onclick="loadLeads()" title="Obnovit"
       class="shrink-0 w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-700 border border-slate-200 bg-white rounded-lg transition-colors">↻</button>
   </div>
+
+  <!-- ── LEADS VIEW ──────────────────────────────────────────────────────────── -->
+  <div id="leads-view">
 
   <!-- Stats -->
   <div id="stats" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4"></div>
@@ -460,6 +463,79 @@
 
     </section>
   </div>
+
+  </div><!-- /leads-view -->
+
+  <!-- ── ADMIN VIEW ───────────────────────────────────────────────────────────── -->
+  <div id="admin-view" class="hidden space-y-5">
+
+    <!-- Global KPI -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div class="bg-white rounded-[12px] border border-slate-100 px-5 py-4">
+        <div id="a-workspaces" class="text-[30px] font-semibold tracking-tight text-slate-900">—</div>
+        <div class="text-[13px] font-medium text-slate-700 mt-0.5">Firem celkem</div>
+      </div>
+      <div class="bg-white rounded-[12px] border border-slate-100 px-5 py-4">
+        <div id="a-active" class="text-[30px] font-semibold tracking-tight text-purple-700">—</div>
+        <div class="text-[13px] font-medium text-slate-700 mt-0.5">Aktivní tento týden</div>
+      </div>
+      <div class="bg-white rounded-[12px] border border-slate-100 px-5 py-4">
+        <div id="a-leads" class="text-[30px] font-semibold tracking-tight text-amber-500">—</div>
+        <div class="text-[13px] font-medium text-slate-700 mt-0.5">Leadů celkem</div>
+      </div>
+      <div class="bg-white rounded-[12px] border border-slate-100 px-5 py-4">
+        <div id="a-won" class="text-[30px] font-semibold tracking-tight text-green-600">—</div>
+        <div class="text-[13px] font-medium text-slate-700 mt-0.5">Vyhráno</div>
+      </div>
+    </div>
+
+    <!-- Admin loading -->
+    <div id="admin-loading" class="hidden py-12 flex items-center justify-center">
+      <div class="w-5 h-5 border-2 border-purple-300 border-t-purple-700 rounded-full spin"></div>
+    </div>
+
+    <!-- Workspaces table -->
+    <div id="admin-table-wrap" class="hidden bg-white rounded-[12px] border border-slate-100 overflow-hidden">
+      <div class="px-5 py-4 flex items-center justify-between" style="border-bottom:1px solid #f1f5f9">
+        <div>
+          <h2 class="text-[15px] font-semibold text-slate-900">Firmy</h2>
+          <p class="text-[12px] text-slate-400 mt-0.5">Klikni na řádek pro detail</p>
+        </div>
+        <input id="admin-search" type="text" placeholder="Hledat…" oninput="filterAdminTable()"
+          class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 w-44">
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-[11px] uppercase tracking-[0.1em] text-slate-400" style="background:#f8fafc">
+              <th class="px-5 py-3 text-left font-medium">Firma</th>
+              <th class="px-4 py-3 text-left font-medium">E-mail</th>
+              <th class="px-4 py-3 text-left font-medium">Režim</th>
+              <th class="px-4 py-3 text-right font-medium">Leadů</th>
+              <th class="px-4 py-3 text-right font-medium">Osloveno</th>
+              <th class="px-4 py-3 text-right font-medium">Vyhráno</th>
+              <th class="px-4 py-3 text-right font-medium">Konverze</th>
+              <th class="px-4 py-3 text-left font-medium">Aktivita</th>
+              <th class="px-4 py-3 text-left font-medium">Registrace</th>
+            </tr>
+          </thead>
+          <tbody id="admin-table-body"></tbody>
+        </table>
+        <div id="admin-table-empty" class="hidden text-center py-12 text-slate-400 text-sm">Žádné firmy</div>
+      </div>
+    </div>
+
+    <!-- Detail panel -->
+    <div id="admin-detail" class="hidden bg-white rounded-[12px] border border-slate-100 p-5">
+      <div class="flex items-center justify-between mb-5">
+        <h3 id="admin-detail-title" class="text-[15px] font-semibold text-slate-900"></h3>
+        <button onclick="closeAdminDetail()" class="text-slate-400 hover:text-slate-700 text-sm transition-colors">✕ Zavřít</button>
+      </div>
+      <div id="admin-detail-content"></div>
+    </div>
+
+  </div><!-- /admin-view -->
+
 </main>
 
 <!-- Mockup modal — Before / After -->
@@ -1551,6 +1627,173 @@ function openSidebar() {
 function closeSidebar() {
   document.getElementById('sidebar').classList.add('-translate-x-full');
   document.getElementById('sidebar-backdrop').classList.add('hidden');
+}
+
+// ── View switching ────────────────────────────────────────────────────────────
+
+let currentView = 'leads';
+
+function showView(name) {
+  closeSidebar();
+  currentView = name;
+
+  const isLeads = name === 'leads';
+  const isAdmin = name === 'admin';
+
+  document.getElementById('leads-view').classList.toggle('hidden', !isLeads);
+  document.getElementById('admin-view').classList.toggle('hidden', !isAdmin);
+
+  document.getElementById('snav-leads').classList.toggle('active', isLeads);
+  document.getElementById('admin-link').classList.toggle('active', isAdmin);
+
+  const titleEl = document.getElementById('page-title');
+  if (titleEl) titleEl.textContent = isAdmin ? 'Admin Panel' : 'Leady';
+
+  const refreshBtn = document.getElementById('page-refresh');
+  if (refreshBtn) refreshBtn.onclick = isAdmin ? loadAdmin : loadLeads;
+
+  if (isAdmin) loadAdmin();
+}
+
+// ── Admin data ────────────────────────────────────────────────────────────────
+
+const ADMIN_STATUS_LABELS = {
+  pending: 'Ke schválení', approved: 'Schválené', contacted: 'Osloveno',
+  replied: 'Odpovědělo', meeting: 'Schůzka', won: 'Vyhráno', lost: 'Prohráno', skipped: 'Přeskočeno',
+};
+
+let adminWorkspaces = [];
+let adminLoaded = false;
+
+function adminEsc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function adminFmt(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function adminRelTime(iso) {
+  if (!iso) return '—';
+  const days = Math.floor((Date.now() - new Date(iso)) / 86400000);
+  if (days === 0) return 'Dnes';
+  if (days === 1) return 'Včera';
+  if (days < 7) return `Před ${days} dny`;
+  if (days < 30) return `Před ${Math.floor(days/7)} týd.`;
+  return adminFmt(iso);
+}
+
+async function loadAdmin() {
+  if (adminLoaded) return;
+  document.getElementById('admin-loading').classList.remove('hidden');
+  document.getElementById('admin-table-wrap').classList.add('hidden');
+
+  try {
+    const res = await authFetch('/api/admin');
+    const data = await res.json();
+    if (!res.ok) { toast(data.error || 'Admin: chyba načítání', true); return; }
+
+    document.getElementById('a-workspaces').textContent = data.stats.workspaces;
+    document.getElementById('a-active').textContent     = data.stats.active_workspaces;
+    document.getElementById('a-leads').textContent      = data.stats.total_leads;
+    document.getElementById('a-won').textContent        = data.stats.won;
+
+    adminWorkspaces = data.workspaces;
+    renderAdminTable(adminWorkspaces);
+    adminLoaded = true;
+  } catch(e) {
+    toast('Admin: ' + e.message, true);
+  } finally {
+    document.getElementById('admin-loading').classList.add('hidden');
+    document.getElementById('admin-table-wrap').classList.remove('hidden');
+  }
+}
+
+function renderAdminTable(list) {
+  const tb = document.getElementById('admin-table-body');
+  const empty = document.getElementById('admin-table-empty');
+  if (!list.length) { tb.innerHTML = ''; empty.classList.remove('hidden'); return; }
+  empty.classList.add('hidden');
+
+  tb.innerHTML = list.map(ws => {
+    const contacted = (ws.by_status?.contacted||0)+(ws.by_status?.replied||0)+(ws.by_status?.meeting||0)+(ws.by_status?.won||0);
+    const won = ws.by_status?.won || 0;
+    const conv = contacted > 0 ? Math.round(won/contacted*100) : null;
+    const dot = ws.active_this_week
+      ? '<span class="w-2 h-2 bg-green-400 rounded-full inline-block mr-1.5 shrink-0"></span>'
+      : '<span class="w-2 h-2 bg-slate-200 rounded-full inline-block mr-1.5 shrink-0"></span>';
+    const badge = ws.scoring_mode === 'icp'
+      ? '<span class="bg-purple-100 text-purple-700 text-xs px-2 py-0.5 rounded-full font-medium">AI</span>'
+      : '<span class="bg-slate-100 text-slate-500 text-xs px-2 py-0.5 rounded-full font-medium">Web</span>';
+
+    return `<tr class="hover:bg-slate-50 cursor-pointer transition-colors align-middle" style="border-top:1px solid #f8fafc" onclick="showAdminDetail('${ws.id}')">
+      <td class="px-5 py-3">
+        <div class="flex items-center">${dot}<span class="font-medium text-slate-900 text-[13px]">${adminEsc(ws.company_name)}</span></div>
+        <div class="text-[12px] text-slate-400 ml-3.5 mt-0.5">${adminEsc(ws.sender_name)}</div>
+      </td>
+      <td class="px-4 py-3 text-slate-500 text-[12px]">${adminEsc(ws.email)}</td>
+      <td class="px-4 py-3">${badge}</td>
+      <td class="px-4 py-3 text-right font-semibold text-slate-900 text-[13px]">${ws.total_leads}</td>
+      <td class="px-4 py-3 text-right text-amber-600 font-medium text-[13px]">${contacted||'—'}</td>
+      <td class="px-4 py-3 text-right text-green-600 font-bold text-[13px]">${won||'—'}</td>
+      <td class="px-4 py-3 text-right text-[12px] ${conv!==null?'text-teal-600 font-semibold':'text-slate-300'}">${conv!==null?conv+' %':'—'}</td>
+      <td class="px-4 py-3 text-[12px] text-slate-400">${adminRelTime(ws.last_lead_at)}</td>
+      <td class="px-4 py-3 text-[12px] text-slate-400">${adminFmt(ws.created_at)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function filterAdminTable() {
+  const q = document.getElementById('admin-search').value.toLowerCase();
+  renderAdminTable(q
+    ? adminWorkspaces.filter(w =>
+        w.company_name?.toLowerCase().includes(q) ||
+        w.email?.toLowerCase().includes(q) ||
+        w.sender_name?.toLowerCase().includes(q))
+    : adminWorkspaces);
+}
+
+function showAdminDetail(id) {
+  const ws = adminWorkspaces.find(w => w.id === id);
+  if (!ws) return;
+  document.getElementById('admin-detail-title').textContent = ws.company_name;
+  document.getElementById('admin-detail').classList.remove('hidden');
+  document.getElementById('admin-detail').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  const statuses = ['pending','approved','contacted','replied','meeting','won','lost','skipped'];
+  const contacted = (ws.by_status?.contacted||0)+(ws.by_status?.replied||0)+(ws.by_status?.meeting||0)+(ws.by_status?.won||0);
+
+  document.getElementById('admin-detail-content').innerHTML = `
+    <div class="grid sm:grid-cols-2 gap-5 mb-5">
+      <div class="space-y-2 text-[13px]">
+        <div class="flex justify-between gap-4"><span class="text-slate-400">E-mail</span><span class="font-medium text-slate-700 text-right">${adminEsc(ws.email)}</span></div>
+        <div class="flex justify-between gap-4"><span class="text-slate-400">Odesílatel</span><span class="font-medium text-slate-700">${adminEsc(ws.sender_name)}</span></div>
+        <div class="flex justify-between gap-4"><span class="text-slate-400">Web</span><span class="font-medium">${ws.website?`<a href="${adminEsc(ws.website)}" target="_blank" class="text-purple-600 hover:underline">${adminEsc(ws.website)}</a>`:'<span class="text-slate-300">—</span>'}</span></div>
+        <div class="flex justify-between gap-4"><span class="text-slate-400">Scoring</span><span class="font-medium text-slate-700">${ws.scoring_mode==='icp'?'AI / ICP':'Slabá online prezentace'}</span></div>
+        <div class="flex justify-between gap-4"><span class="text-slate-400">Registrace</span><span class="font-medium text-slate-700">${adminFmt(ws.created_at)}</span></div>
+        <div class="flex justify-between gap-4"><span class="text-slate-400">Poslední lead</span><span class="font-medium text-slate-700">${adminRelTime(ws.last_lead_at)}</span></div>
+      </div>
+      <div>
+        <p class="text-[11px] text-slate-400 font-semibold uppercase tracking-widest mb-3">Leady podle stavu</p>
+        <div class="space-y-2">
+          ${statuses.filter(s=>ws.by_status?.[s]).map(s=>{
+            const n=ws.by_status[s];
+            const pct=ws.total_leads>0?Math.round(n/ws.total_leads*100):0;
+            return `<div class="flex items-center gap-2">
+              <div class="w-24 text-[12px] text-slate-500 shrink-0">${ADMIN_STATUS_LABELS[s]||s}</div>
+              <div class="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden"><div class="h-full rounded-full bg-purple-400" style="width:${pct}%"></div></div>
+              <div class="text-[12px] font-semibold text-slate-700 w-5 text-right shrink-0">${n}</div>
+            </div>`;
+          }).join('')||'<p class="text-slate-300 text-sm">Žádné leady</p>'}
+        </div>
+      </div>
+    </div>
+    ${ws.pitch?`<div class="bg-slate-50 rounded-xl p-3 text-[13px] text-slate-600 mb-2"><span class="font-semibold text-slate-400 text-[11px] uppercase tracking-wide block mb-1">Co nabízí</span>${adminEsc(ws.pitch)}</div>`:''}
+    ${ws.icp?`<div class="bg-purple-50 rounded-xl p-3 text-[13px] text-slate-600"><span class="font-semibold text-slate-400 text-[11px] uppercase tracking-wide block mb-1">Scoring popis (ICP)</span>${adminEsc(ws.icp)}</div>`:''}
+  `;
+}
+
+function closeAdminDetail() {
+  document.getElementById('admin-detail').classList.add('hidden');
 }
 
 (async function initApp() {
