@@ -294,14 +294,44 @@
   </div>
 </main>
 
-<!-- Mockup modal -->
-<div id="mockup-modal" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onclick="closeMockup(event)">
-  <div class="relative max-w-6xl w-full">
-    <button onclick="closeMockup()" class="absolute -top-10 right-0 text-white/70 hover:text-white text-sm">✕ Zavřít</button>
-    <img id="mockup-img" src="" alt="Návrh webu" class="w-full rounded-xl shadow-2xl">
-    <div class="flex justify-end mt-3 gap-2">
-      <a id="mockup-dl" href="" download class="bg-white/10 hover:bg-white/20 text-white text-sm px-4 py-2 rounded-lg transition-colors">⬇ Stáhnout</a>
-      <button id="mockup-regen" onclick="regenMockup()" class="bg-purple-600 hover:bg-purple-700 text-white text-sm px-4 py-2 rounded-lg transition-colors">↻ Regenerovat</button>
+<!-- Mockup modal — Before / After -->
+<div id="mockup-modal" class="hidden fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 overflow-y-auto" onclick="closeMockup(event)">
+  <div class="relative max-w-7xl w-full my-8">
+    <button onclick="closeMockup()" class="absolute -top-8 right-0 text-white/70 hover:text-white text-sm">✕ Zavřít</button>
+
+    <div class="grid grid-cols-2 gap-4">
+      <!-- BEFORE -->
+      <div>
+        <div class="text-center mb-2">
+          <span class="bg-red-500/20 text-red-300 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest">Teď</span>
+        </div>
+        <div id="before-wrap" class="rounded-xl overflow-hidden border border-white/10 bg-gray-900 min-h-48 flex items-center justify-center">
+          <img id="before-img" src="" alt="Aktuální web" class="w-full hidden">
+          <div id="before-nosite" class="hidden text-center py-16 px-6">
+            <div class="text-5xl mb-3">🌐</div>
+            <div class="text-gray-400 text-sm">Firma nemá web</div>
+            <div class="text-gray-600 text-xs mt-1">Ideální příležitost</div>
+          </div>
+          <div id="before-loading" class="text-gray-500 text-sm">Načítám screenshot…</div>
+        </div>
+      </div>
+
+      <!-- AFTER -->
+      <div>
+        <div class="text-center mb-2">
+          <span class="bg-green-500/20 text-green-300 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest">S tvojí pomocí</span>
+        </div>
+        <div class="rounded-xl overflow-hidden border border-white/10 bg-gray-900 min-h-48 flex items-center justify-center">
+          <img id="mockup-img" src="" alt="Návrh webu" class="w-full hidden">
+          <div id="after-loading" class="text-gray-500 text-sm">Generuji AI návrh…</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="mockup-company-name" class="text-center text-white/50 text-xs mt-3 mb-1"></div>
+    <div class="flex justify-end gap-2">
+      <a id="mockup-dl" href="" download class="bg-white/10 hover:bg-white/20 text-white text-sm px-4 py-2 rounded-lg transition-colors">⬇ Stáhnout návrh</a>
+      <button id="mockup-regen" onclick="regenMockup()" class="bg-purple-600 hover:bg-purple-700 text-white text-sm px-4 py-2 rounded-lg transition-colors">↻ Regenerovat návrh</button>
     </div>
   </div>
 </div>
@@ -587,7 +617,40 @@ async function approve(id) {
 }
 
 async function markContacted(id) {
-  await moveTo(id, 'contacted', 'Označeno jako osloveno 📨', { contacted_at: new Date().toISOString() });
+  const due = new Date();
+  due.setDate(due.getDate() + 5);
+  await moveTo(id, 'contacted', 'Označeno jako osloveno 📨', {
+    contacted_at: new Date().toISOString(),
+    followup_due_at: due.toISOString(),
+    followup_count: 0,
+    followup_draft: null,
+  });
+}
+
+async function copyFollowUp(id) {
+  const lead = findLead(id);
+  if (!lead?.followup_draft) return;
+  await navigator.clipboard.writeText(lead.followup_draft);
+  toast('Follow-up zkopírován do schránky 📋');
+}
+
+async function generateFollowUp(id) {
+  const btn = document.getElementById(`fu-btn-${id}`);
+  if (btn) { btn.textContent = 'Generuji…'; btn.disabled = true; }
+  try {
+    const res = await authFetch('/api/followup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Chyba');
+    toast(`Follow-up #${data.followup_count} připraven ✓`);
+    await loadLeads();
+  } catch(e) {
+    toast(e.message, true);
+    if (btn) { btn.textContent = '✉️ Follow-up'; btn.disabled = false; }
+  }
 }
 
 async function skip(id) {
@@ -629,23 +692,61 @@ function exportCsv() {
   toast(`Exportováno ${list.length} leadů ⬇`);
 }
 
-// ── Mockup modal ──────────────────────────────────────────────────────────────
+// ── Mockup modal — Before / After ────────────────────────────────────────────
 
 let currentMockupId = null;
 
+function findLead(id) {
+  for (const leads of Object.values(leadsByStatus)) {
+    const l = leads.find(x => x.id === id);
+    if (l) return l;
+  }
+  return null;
+}
+
 async function showMockup(id, btn) {
   currentMockupId = id;
+  const lead = findLead(id);
   const orig = btn.textContent;
   btn.textContent = 'Generuji…';
   btn.disabled = true;
+
+  // Reset modal state
+  const beforeImg = document.getElementById('before-img');
+  const beforeNosite = document.getElementById('before-nosite');
+  const beforeLoading = document.getElementById('before-loading');
+  const afterImg = document.getElementById('mockup-img');
+  const afterLoading = document.getElementById('after-loading');
+  beforeImg.classList.add('hidden');
+  beforeNosite.classList.add('hidden');
+  beforeLoading.classList.remove('hidden');
+  afterImg.classList.add('hidden');
+  afterLoading.classList.remove('hidden');
+  document.getElementById('mockup-company-name').textContent = lead?.company || '';
+  document.getElementById('mockup-modal').classList.remove('hidden');
+
+  // Load BEFORE (screenshot of current website)
+  if (lead?.website) {
+    const screenshotUrl = `https://image.thum.io/get/width/1200/crop/900/${lead.website}`;
+    beforeImg.onload = () => { beforeLoading.classList.add('hidden'); beforeImg.classList.remove('hidden'); };
+    beforeImg.onerror = () => { beforeLoading.textContent = 'Screenshot nelze načíst'; };
+    beforeImg.src = screenshotUrl;
+  } else {
+    beforeLoading.classList.add('hidden');
+    beforeNosite.classList.remove('hidden');
+  }
+
+  // Load AFTER (AI mockup)
   try {
     const res  = await authFetch(`/api/mockup?id=${id}`);
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Chyba');
-    document.getElementById('mockup-img').src = data.url;
+    afterLoading.classList.add('hidden');
+    afterImg.src = data.url;
+    afterImg.classList.remove('hidden');
     document.getElementById('mockup-dl').href = data.url;
-    document.getElementById('mockup-modal').classList.remove('hidden');
   } catch(e) {
+    afterLoading.textContent = 'Chyba: ' + e.message;
     toast(e.message, true);
   } finally {
     btn.textContent = orig;
@@ -997,11 +1098,21 @@ function actionButtons(lead) {
       ${copyBtn}
       <button onclick="moveTo('${lead.id}','pending','Vráceno ke schválení')" class="border border-gray-200 hover:bg-red-50 hover:text-red-400 text-gray-400 px-3 py-2 rounded-xl text-sm transition-colors">Vrátit</button>
       ${mockupBtn}`;
-    case 'contacted': return `
-      <button onclick="moveTo('${lead.id}','replied','Super, odpověděl! 💬')" class="flex-1 bg-teal-600 hover:bg-teal-700 text-white py-2 rounded-xl text-sm font-semibold transition-colors">💬 Odpověděl</button>
-      ${followUp}
-      ${copyBtn}
-      ${mockupBtn}`;
+    case 'contacted': {
+      const fuDue = lead.followup_due_at && new Date(lead.followup_due_at) <= new Date();
+      const fuReady = !!lead.followup_draft;
+      const fuBtn = fuReady
+        ? `<button onclick="copyFollowUp('${lead.id}')" class="border border-teal-300 bg-teal-50 hover:bg-teal-100 text-teal-700 px-3 py-2 rounded-xl text-sm font-medium transition-colors whitespace-nowrap">📋 Follow-up #${lead.followup_count}</button>`
+        : fuDue
+          ? `<button id="fu-btn-${lead.id}" onclick="generateFollowUp('${lead.id}')" class="border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-700 px-3 py-2 rounded-xl text-sm font-medium transition-colors whitespace-nowrap">✉️ Follow-up</button>`
+          : '';
+      return `
+        <button onclick="moveTo('${lead.id}','replied','Super, odpověděl! 💬')" class="flex-1 bg-teal-600 hover:bg-teal-700 text-white py-2 rounded-xl text-sm font-semibold transition-colors">💬 Odpověděl</button>
+        ${fuBtn}
+        ${followUp}
+        ${copyBtn}
+        ${mockupBtn}`;
+    }
     case 'replied': return `
       <button onclick="moveTo('${lead.id}','meeting','Schůzka domluvena 🤝')" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-xl text-sm font-semibold transition-colors">🤝 Schůzka</button>
       <button onclick="moveTo('${lead.id}','won','Gratuluju! 🏆')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors">🏆 Vyhráno</button>
@@ -1087,7 +1198,7 @@ function render() {
         </div>
       </details>
 
-      <details class="card-sec bg-amber-50/60 rounded-xl mb-3" ${lead.notes ? 'open' : ''}>
+      <details class="card-sec bg-amber-50/60 rounded-xl mb-2" ${lead.notes ? 'open' : ''}>
         <summary class="px-3 py-2 cursor-pointer select-none flex items-center gap-2">
           <span class="chev text-gray-400 text-xs">▶</span>
           <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">📝 Poznámky${lead.notes ? ' •' : ''}</span>
@@ -1097,6 +1208,17 @@ function render() {
             class="w-full text-sm text-gray-700 bg-white border border-amber-200 rounded-lg p-2 resize-none focus:outline-none focus:ring-2 focus:ring-amber-400 leading-relaxed" rows="2">${esc(lead.notes)}</textarea>
         </div>
       </details>
+
+      ${lead.followup_draft ? `
+      <details class="card-sec bg-teal-50/60 rounded-xl mb-2" open>
+        <summary class="px-3 py-2 cursor-pointer select-none flex items-center gap-2">
+          <span class="chev text-gray-400 text-xs">▶</span>
+          <span class="text-xs font-semibold text-teal-600 uppercase tracking-wide">✉️ Follow-up #${lead.followup_count || 1} — připraven k odeslání</span>
+        </summary>
+        <div class="px-3 pb-3">
+          <div class="text-sm text-gray-600 whitespace-pre-line leading-relaxed bg-white border border-teal-100 rounded-lg p-2">${esc(lead.followup_draft)}</div>
+        </div>
+      </details>` : ''}
 
       <div class="flex gap-2 flex-wrap">${actionButtons(lead)}</div>
     </div>`;
