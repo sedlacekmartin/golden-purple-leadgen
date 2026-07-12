@@ -75,7 +75,11 @@ async function generateAndStore(lead) {
   return `data:image/png;base64,${base64}`;
 }
 
+/* DISABLED — mockup generation turned off; re-enable by removing the early return below */
 export default async function handler(req, res) {
+  return res.status(503).json({ error: 'Generování mockupů je aktuálně vypnuto' });
+
+  // eslint-disable-next-line no-unreachable
   const auth = await requireUser(req);
   if (auth.error) return res.status(auth.status).json({ error: auth.error });
   const { sb } = auth;
