@@ -10,6 +10,7 @@ export default async function handler(req, res) {
   try {
     let query = supabase.from('leads').select('*').order('score', { ascending: false });
     if (status) query = query.eq('status', status);
+    else query = query.neq('status', 'skipped');
 
     const { data, error } = await query;
     if (error) return res.status(500).json({ error: error.message });

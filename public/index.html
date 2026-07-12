@@ -10,10 +10,10 @@
     @keyframes slideUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
     .spin { animation: spin 0.8s linear infinite; }
     .slide-up { animation: slideUp 0.18s ease; }
-    details.draft > summary { list-style: none; }
-    details.draft > summary::-webkit-details-marker { display: none; }
-    details.draft > summary .chev { transition: transform 0.15s; }
-    details.draft[open] > summary .chev { transform: rotate(90deg); }
+    details.card-sec > summary { list-style: none; }
+    details.card-sec > summary::-webkit-details-marker { display: none; }
+    details.card-sec > summary .chev { transition: transform 0.15s; }
+    details.card-sec[open] > summary .chev { transform: rotate(90deg); }
   </style>
 </head>
 <body class="bg-slate-100 min-h-screen">
@@ -25,15 +25,19 @@
       <span class="text-white font-bold text-lg tracking-tight">Golden Purple</span>
       <span class="text-purple-300 text-sm hidden sm:inline">/ Lead-gen</span>
     </div>
-    <button onclick="loadLeads()" title="Obnovit"
-      class="text-purple-300 hover:text-white text-xl px-1 transition-colors">↻</button>
+    <div class="flex items-center gap-3">
+      <button onclick="exportCsv()" title="Export do CSV"
+        class="text-purple-300 hover:text-white text-sm px-2 py-1 rounded-lg border border-purple-700 hover:border-purple-500 transition-colors">⬇ CSV</button>
+      <button onclick="loadLeads()" title="Obnovit"
+        class="text-purple-300 hover:text-white text-xl px-1 transition-colors">↻</button>
+    </div>
   </div>
 </header>
 
 <main class="max-w-7xl mx-auto px-4 py-6">
 
   <!-- Stats -->
-  <div id="stats" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6"></div>
+  <div id="stats" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6"></div>
 
   <div class="lg:grid lg:grid-cols-[300px_1fr] lg:gap-6 lg:items-start">
 
@@ -88,6 +92,10 @@
             <input id="f-draft" type="checkbox" onchange="resetPage();render()" class="accent-purple-600 w-3.5 h-3.5">
             <span class="text-xs text-gray-500">Jen s draftem</span>
           </label>
+          <label class="flex items-center gap-1.5 cursor-pointer select-none">
+            <input id="f-followup" type="checkbox" onchange="resetPage();render()" class="accent-purple-600 w-3.5 h-3.5">
+            <span class="text-xs text-gray-500">⏰ Follow-up dnes a dřív</span>
+          </label>
         </div>
 
         <div id="f-reasons" class="flex flex-wrap gap-1.5 mb-2"></div>
@@ -114,17 +122,8 @@
     <!-- ── MAIN ────────────────────────────────────────────────────────────── -->
     <section>
 
-      <!-- Tabs -->
-      <div class="flex gap-1 bg-gray-200/70 p-1 rounded-xl w-fit mb-4">
-        <button id="tab-pending" onclick="switchTab('pending')"
-          class="px-4 py-1.5 rounded-lg text-sm font-medium transition-all bg-white text-purple-700 shadow-sm">
-          Ke schválení&thinsp;<span id="cnt-pending" class="text-xs bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded-full font-bold"></span>
-        </button>
-        <button id="tab-approved" onclick="switchTab('approved')"
-          class="px-4 py-1.5 rounded-lg text-sm font-medium transition-all text-gray-500 hover:text-gray-700">
-          Schválené&thinsp;<span id="cnt-approved" class="text-xs bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded-full font-bold"></span>
-        </button>
-      </div>
+      <!-- Pipeline tabs -->
+      <div id="tabs" class="flex gap-1 bg-gray-200/70 p-1 rounded-xl w-fit mb-4 flex-wrap"></div>
 
       <!-- Cards -->
       <div id="cards" class="space-y-3"></div>
@@ -169,20 +168,36 @@
 </div>
 
 <script>
+// ── Pipeline ──────────────────────────────────────────────────────────────────
+
+const TABS = [
+  { key: 'pending',   label: 'Ke schválení', badge: 'bg-purple-100 text-purple-600' },
+  { key: 'approved',  label: 'Schválené',    badge: 'bg-blue-100 text-blue-600' },
+  { key: 'contacted', label: 'Osloveno',     badge: 'bg-amber-100 text-amber-600' },
+  { key: 'replied',   label: 'Odpověděl',    badge: 'bg-teal-100 text-teal-600' },
+  { key: 'meeting',   label: 'Schůzka',      badge: 'bg-indigo-100 text-indigo-600' },
+  { key: 'closed',    label: 'Uzavřeno',     badge: 'bg-gray-200 text-gray-500' },
+];
+
 let activeTab = 'pending';
-let leads = { pending: [], approved: [] };
+let leadsByStatus = {};
+
+function getTabLeads(tab) {
+  if (tab === 'closed') return [...(leadsByStatus.won || []), ...(leadsByStatus.lost || [])];
+  return leadsByStatus[tab] || [];
+}
 
 // ── Data ─────────────────────────────────────────────────────────────────────
 
 async function loadLeads() {
   try {
-    const [p, a] = await Promise.all([
-      fetch('/api/leads?status=pending').then(r => r.json()),
-      fetch('/api/leads?status=approved').then(r => r.json()),
-    ]);
-    leads.pending  = p.leads || [];
-    leads.approved = a.leads || [];
-    updateCounts();
+    const res = await fetch('/api/leads');
+    const data = await res.json();
+    leadsByStatus = {};
+    for (const l of (data.leads || [])) {
+      (leadsByStatus[l.status] = leadsByStatus[l.status] || []).push(l);
+    }
+    renderTabs();
     renderStats();
     renderFilterUI();
     render();
@@ -231,27 +246,59 @@ async function patchLead(id, data) {
 
 // ── Actions ───────────────────────────────────────────────────────────────────
 
+async function moveTo(id, status, msg, extra = {}) {
+  await patchLead(id, { status, ...extra });
+  toast(msg);
+  await loadLeads();
+}
+
 async function approve(id) {
   const ta = document.getElementById(`ta-${id}`);
   const extra = (ta && !ta.classList.contains('hidden')) ? { email_draft: ta.value } : {};
-  await patchLead(id, { status: 'approved', ...extra });
-  toast('Lead schválen ✓');
-  await loadLeads();
+  await moveTo(id, 'approved', 'Lead schválen ✓', extra);
+}
+
+async function markContacted(id) {
+  await moveTo(id, 'contacted', 'Označeno jako osloveno 📨', { contacted_at: new Date().toISOString() });
 }
 
 async function skip(id) {
   await patchLead(id, { status: 'skipped' });
-  leads.pending = leads.pending.filter(l => l.id !== id);
-  updateCounts();
-  renderStats();
-  render();
+  leadsByStatus.pending = (leadsByStatus.pending || []).filter(l => l.id !== id);
+  renderTabs(); renderStats(); render();
   toast('Přeskočeno');
 }
 
-async function revert(id) {
-  await patchLead(id, { status: 'pending' });
-  toast('Vráceno ke schválení');
-  await loadLeads();
+function saveNotes(id, value) {
+  patchLead(id, { notes: value });
+  const lead = getTabLeads(activeTab).find(l => l.id === id);
+  if (lead) lead.notes = value;
+}
+
+function saveFollowUp(id, value) {
+  patchLead(id, { follow_up: value });
+  const lead = getTabLeads(activeTab).find(l => l.id === id);
+  if (lead) lead.follow_up = value;
+  toast(value ? `Follow-up: ${value} ⏰` : 'Follow-up zrušen');
+}
+
+// ── CSV export ────────────────────────────────────────────────────────────────
+
+function exportCsv() {
+  const list = getFiltered();
+  if (!list.length) { toast('Žádné leady k exportu', true); return; }
+  const cols = ['company','category','location','email','phone','website','ico','legal_form','founded','employees','score','reasons','status','follow_up','notes','email_draft'];
+  const head = ['Firma','Kategorie','Lokalita','E-mail','Telefon','Web','IČO','Právní forma','Založena','Zaměstnanců','Skóre','Důvody','Stav','Follow-up','Poznámky','Draft'];
+  const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const rows = list.map(l => cols.map(c =>
+    q(c === 'reasons' ? (l.reasons || []).join(', ') : l[c])).join(';'));
+  const csv = '﻿' + head.map(q).join(';') + '\n' + rows.join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = `leady-${activeTab}-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast(`Exportováno ${list.length} leadů ⬇`);
 }
 
 // ── Mockup modal ──────────────────────────────────────────────────────────────
@@ -304,7 +351,7 @@ function closeMockup(e) {
 }
 
 function copyDraft(id) {
-  const lead = [...leads.pending, ...leads.approved].find(l => l.id === id);
+  const lead = getTabLeads(activeTab).find(l => l.id === id);
   if (!lead?.email_draft) return;
   navigator.clipboard.writeText(lead.email_draft).then(() => toast('Draft zkopírován 📋'));
 }
@@ -331,9 +378,12 @@ function toggleEdit(id) {
 // ── Stats ─────────────────────────────────────────────────────────────────────
 
 function renderStats() {
-  const all = [...leads.pending, ...leads.approved];
-  const withEmail = all.filter(l => l.email).length;
-  const avgScore = all.length ? Math.round(all.reduce((s, l) => s + (l.score || 0), 0) / all.length) : 0;
+  const count = s => (leadsByStatus[s] || []).length;
+  const all = Object.values(leadsByStatus).flat();
+  const contacted = count('contacted') + count('replied') + count('meeting') + count('won') + count('lost');
+  const replied   = count('replied') + count('meeting') + count('won') + count('lost');
+  const rate = contacted ? Math.round(replied / contacted * 100) : null;
+
   const stat = (label, value, accent = '') => `
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-3">
       <div class="text-2xl font-bold ${accent || 'text-gray-800'}">${value}</div>
@@ -341,29 +391,32 @@ function renderStats() {
     </div>`;
   document.getElementById('stats').innerHTML =
     stat('Leadů celkem', all.length) +
-    stat('Ke schválení', leads.pending.length, 'text-purple-700') +
-    stat('Schváleno', leads.approved.length, 'text-green-600') +
-    stat('S e-mailem', all.length ? Math.round(withEmail / all.length * 100) + ' %' : '—', 'text-amber-500');
+    stat('Ke schválení', count('pending'), 'text-purple-700') +
+    stat('Osloveno', contacted, 'text-amber-500') +
+    stat('Odpovědělo', replied, 'text-teal-600') +
+    stat('Úspěšnost odpovědí', rate === null ? '—' : rate + ' %', 'text-teal-600') +
+    stat('Vyhráno', count('won'), 'text-green-600');
 }
 
-// ── UI helpers ────────────────────────────────────────────────────────────────
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+
+function renderTabs() {
+  document.getElementById('tabs').innerHTML = TABS.map(t => {
+    const n = getTabLeads(t.key).length;
+    const active = t.key === activeTab;
+    return `<button onclick="switchTab('${t.key}')"
+      class="px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${active ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}">
+      ${t.label}&thinsp;<span class="text-xs ${t.badge} px-1.5 py-0.5 rounded-full font-bold">${n || ''}</span>
+    </button>`;
+  }).join('');
+}
 
 function switchTab(t) {
   activeTab = t;
   currentPage = 1;
-  ['pending', 'approved'].forEach(id => {
-    const btn = document.getElementById(`tab-${id}`);
-    btn.className = id === t
-      ? 'px-4 py-1.5 rounded-lg text-sm font-medium transition-all bg-white text-purple-700 shadow-sm'
-      : 'px-4 py-1.5 rounded-lg text-sm font-medium transition-all text-gray-500 hover:text-gray-700';
-  });
+  renderTabs();
   renderFilterUI();
   render();
-}
-
-function updateCounts() {
-  document.getElementById('cnt-pending').textContent  = leads.pending.length  || '';
-  document.getElementById('cnt-approved').textContent = leads.approved.length || '';
 }
 
 // ── Filters ───────────────────────────────────────────────────────────────────
@@ -383,17 +436,21 @@ function getFiltered() {
   const minScore = parseInt(document.getElementById('f-score')?.value) || 0;
   const onlyDraft = document.getElementById('f-draft')?.checked;
   const onlyEmail = document.getElementById('f-email')?.checked;
-  return [...leads[activeTab]]
+  const onlyFollow = document.getElementById('f-followup')?.checked;
+  const today = new Date().toISOString().slice(0, 10);
+  return [...getTabLeads(activeTab)]
     .filter(l => l.score >= minScore)
     .filter(l => !activeReasons.size || l.reasons?.some(r => activeReasons.has(r)))
     .filter(l => !activeCatFilter.size || activeCatFilter.has(l.category))
     .filter(l => !onlyDraft || !!l.email_draft)
     .filter(l => !onlyEmail || !!l.email)
+    .filter(l => !onlyFollow || (l.follow_up && l.follow_up <= today))
     .sort((a, b) => b.score - a.score);
 }
 
 function renderFilterUI() {
-  const allReasons = [...new Set(leads[activeTab].flatMap(l => l.reasons || []))];
+  const tabLeads = getTabLeads(activeTab);
+  const allReasons = [...new Set(tabLeads.flatMap(l => l.reasons || []))];
   document.getElementById('f-reasons').innerHTML = allReasons.map(r => {
     const active = activeReasons.has(r);
     return `<button onclick="toggleReason('${r.replace(/'/g,"&#39;")}')"
@@ -403,7 +460,7 @@ function renderFilterUI() {
     </button>`;
   }).join('');
 
-  const allCatsInLeads = [...new Set(leads[activeTab].map(l => l.category).filter(Boolean))];
+  const allCatsInLeads = [...new Set(tabLeads.map(l => l.category).filter(Boolean))];
   document.getElementById('f-cats').innerHTML = allCatsInLeads.length < 2 ? '' : allCatsInLeads.map(c => {
     const active = activeCatFilter.has(c);
     return `<button onclick="toggleCatFilter('${c.replace(/'/g,"&#39;")}')"
@@ -421,6 +478,7 @@ function clearFilters() {
   document.getElementById('f-score').value = 0;
   document.getElementById('f-draft').checked = false;
   document.getElementById('f-email').checked = false;
+  document.getElementById('f-followup').checked = false;
   resetPage(); render(); renderFilterUI();
 }
 
@@ -468,6 +526,65 @@ function renderPagination(total) {
 
 // ── Render ────────────────────────────────────────────────────────────────────
 
+const EMPTY_TEXT = {
+  pending:   ['🔍', 'Zadej parametry vlevo a klikni Hledat leady.'],
+  approved:  ['📭', 'Žádné schválené leady — schval něco v prvním tabu.'],
+  contacted: ['📨', 'Zatím jsi nikoho neoslovil. Schválený lead označ „Osloveno".'],
+  replied:   ['💬', 'Zatím žádná odpověď. Vydrž, ono to přijde!'],
+  meeting:   ['🤝', 'Žádná domluvená schůzka.'],
+  closed:    ['🏁', 'Žádné uzavřené obchody.'],
+};
+
+function followUpBadge(lead) {
+  if (!lead.follow_up) return '';
+  const today = new Date().toISOString().slice(0, 10);
+  const overdue = lead.follow_up <= today;
+  return `<span class="text-xs ${overdue ? 'bg-red-100 text-red-600 font-bold' : 'bg-slate-100 text-slate-500'} px-2 py-0.5 rounded-full">⏰ ${esc(lead.follow_up)}</span>`;
+}
+
+function actionButtons(lead) {
+  const mockupBtn = `<button onclick="showMockup('${lead.id}', this)"
+    class="border border-purple-200 hover:bg-purple-50 text-purple-600 px-3 py-2 rounded-xl text-sm font-medium transition-colors whitespace-nowrap">🎨 Návrh webu</button>`;
+  const copyBtn = `<button onclick="copyDraft('${lead.id}')"
+    class="border border-gray-200 hover:bg-gray-50 text-gray-500 px-3 py-2 rounded-xl text-sm font-medium transition-colors">📋</button>`;
+  const followUp = `<input type="date" value="${lead.follow_up || ''}" onchange="saveFollowUp('${lead.id}', this.value)"
+    title="Datum follow-upu"
+    class="border border-gray-200 rounded-xl px-2 py-2 text-xs text-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-400">`;
+
+  switch (lead.status) {
+    case 'pending': return `
+      <button onclick="approve('${lead.id}')" class="flex-1 bg-purple-700 hover:bg-purple-800 text-white py-2 rounded-xl text-sm font-semibold transition-colors">✓ Schválit</button>
+      <button onclick="skip('${lead.id}')" class="flex-1 border border-gray-200 hover:bg-gray-50 text-gray-500 py-2 rounded-xl text-sm font-medium transition-colors">Přeskočit</button>
+      ${mockupBtn}`;
+    case 'approved': return `
+      <button onclick="markContacted('${lead.id}')" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white py-2 rounded-xl text-sm font-semibold transition-colors">📨 Osloveno</button>
+      ${copyBtn}
+      <button onclick="moveTo('${lead.id}','pending','Vráceno ke schválení')" class="border border-gray-200 hover:bg-red-50 hover:text-red-400 text-gray-400 px-3 py-2 rounded-xl text-sm transition-colors">Vrátit</button>
+      ${mockupBtn}`;
+    case 'contacted': return `
+      <button onclick="moveTo('${lead.id}','replied','Super, odpověděl! 💬')" class="flex-1 bg-teal-600 hover:bg-teal-700 text-white py-2 rounded-xl text-sm font-semibold transition-colors">💬 Odpověděl</button>
+      ${followUp}
+      ${copyBtn}
+      ${mockupBtn}`;
+    case 'replied': return `
+      <button onclick="moveTo('${lead.id}','meeting','Schůzka domluvena 🤝')" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-xl text-sm font-semibold transition-colors">🤝 Schůzka</button>
+      <button onclick="moveTo('${lead.id}','won','Gratuluju! 🏆')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors">🏆 Vyhráno</button>
+      <button onclick="moveTo('${lead.id}','lost','Škoda, příště 🤷')" class="border border-gray-200 hover:bg-gray-50 text-gray-500 px-3 py-2 rounded-xl text-sm transition-colors">✖ Prohráno</button>
+      ${followUp}`;
+    case 'meeting': return `
+      <button onclick="moveTo('${lead.id}','won','Gratuluju! 🏆')" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-xl text-sm font-semibold transition-colors">🏆 Vyhráno</button>
+      <button onclick="moveTo('${lead.id}','lost','Škoda, příště 🤷')" class="flex-1 border border-gray-200 hover:bg-gray-50 text-gray-500 py-2 rounded-xl text-sm transition-colors">✖ Prohráno</button>
+      ${followUp}`;
+    case 'won': return `
+      <span class="flex-1 flex items-center text-sm text-green-600 font-semibold">🏆 Vyhráno</span>
+      <button onclick="moveTo('${lead.id}','meeting','Vráceno do jednání')" class="border border-gray-200 hover:bg-gray-50 text-gray-400 px-3 py-2 rounded-xl text-sm transition-colors">Vrátit</button>`;
+    case 'lost': return `
+      <span class="flex-1 flex items-center text-sm text-gray-400 font-medium">✖ Prohráno</span>
+      <button onclick="moveTo('${lead.id}','contacted','Vráceno mezi oslovené')" class="border border-gray-200 hover:bg-gray-50 text-gray-400 px-3 py-2 rounded-xl text-sm transition-colors">Zkusit znovu</button>`;
+    default: return '';
+  }
+}
+
 function render() {
   const el   = document.getElementById('cards');
   const filtered = getFiltered();
@@ -477,11 +594,9 @@ function render() {
   renderPagination(filtered.length);
 
   if (!filtered.length) {
+    const [icon, text] = EMPTY_TEXT[activeTab] || ['📂', 'Nic tu není.'];
     el.innerHTML = `<div class="text-center py-16 text-gray-400 text-sm bg-white rounded-2xl border border-gray-100">
-      <div class="text-4xl mb-2">${activeTab === 'pending' ? '🔍' : '✅'}</div>
-      ${activeTab === 'pending'
-        ? 'Zadej parametry vlevo a klikni Hledat leady.'
-        : 'Žádné schválené leady.'}
+      <div class="text-4xl mb-2">${icon}</div>${text}
     </div>`;
     return;
   }
@@ -496,7 +611,10 @@ function render() {
           <div class="font-semibold text-gray-800 truncate">${esc(lead.company)}</div>
           <div class="text-xs text-gray-400 mt-0.5">${[lead.location, lead.category].filter(Boolean).map(esc).join(' · ')}</div>
         </div>
-        <span class="shrink-0 text-xs font-bold px-2.5 py-1 rounded-full ${scoreBadge(lead.score)}">${lead.score} b.</span>
+        <div class="flex items-center gap-1.5 shrink-0">
+          ${followUpBadge(lead)}
+          <span class="text-xs font-bold px-2.5 py-1 rounded-full ${scoreBadge(lead.score)}">${lead.score} b.</span>
+        </div>
       </div>
 
       <div class="flex flex-wrap gap-1.5 mb-2">
@@ -515,7 +633,7 @@ function render() {
                        : `<span>🌐 Nemá web</span>`}
       </div>
 
-      <details class="draft bg-slate-50 rounded-xl mb-3" ${isPending ? 'open' : ''}>
+      <details class="card-sec bg-slate-50 rounded-xl mb-2" ${isPending ? 'open' : ''}>
         <summary class="px-3 py-2 cursor-pointer select-none flex items-center gap-2">
           <span class="chev text-gray-400 text-xs">▶</span>
           <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide flex-1">Draft e-mailu</span>
@@ -528,32 +646,18 @@ function render() {
         </div>
       </details>
 
-      <div class="flex gap-2 flex-wrap">
-        ${isPending ? `
-          <button onclick="approve('${lead.id}')"
-            class="flex-1 bg-purple-700 hover:bg-purple-800 text-white py-2 rounded-xl text-sm font-semibold transition-colors">
-            ✓ Schválit
-          </button>
-          <button onclick="skip('${lead.id}')"
-            class="flex-1 border border-gray-200 hover:bg-gray-50 text-gray-500 py-2 rounded-xl text-sm font-medium transition-colors">
-            Přeskočit
-          </button>
-        ` : `
-          <span class="flex-1 flex items-center text-sm text-green-600 font-medium">✅ Schváleno</span>
-          <button onclick="copyDraft('${lead.id}')"
-            class="border border-gray-200 hover:bg-gray-50 text-gray-500 px-4 py-2 rounded-xl text-sm font-medium transition-colors">
-            📋 Kopírovat
-          </button>
-          <button onclick="revert('${lead.id}')"
-            class="border border-gray-200 hover:bg-red-50 hover:text-red-400 text-gray-400 px-3 py-2 rounded-xl text-sm transition-colors">
-            Vrátit
-          </button>
-        `}
-        <button onclick="showMockup('${lead.id}', this)"
-          class="border border-purple-200 hover:bg-purple-50 text-purple-600 px-3 py-2 rounded-xl text-sm font-medium transition-colors whitespace-nowrap">
-          🎨 Návrh webu
-        </button>
-      </div>
+      <details class="card-sec bg-amber-50/60 rounded-xl mb-3" ${lead.notes ? 'open' : ''}>
+        <summary class="px-3 py-2 cursor-pointer select-none flex items-center gap-2">
+          <span class="chev text-gray-400 text-xs">▶</span>
+          <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">📝 Poznámky${lead.notes ? ' •' : ''}</span>
+        </summary>
+        <div class="px-3 pb-3">
+          <textarea onblur="saveNotes('${lead.id}', this.value)" placeholder="Napiš si poznámku… (uloží se automaticky)"
+            class="w-full text-sm text-gray-700 bg-white border border-amber-200 rounded-lg p-2 resize-none focus:outline-none focus:ring-2 focus:ring-amber-400 leading-relaxed" rows="2">${esc(lead.notes)}</textarea>
+        </div>
+      </details>
+
+      <div class="flex gap-2 flex-wrap">${actionButtons(lead)}</div>
     </div>`;
   }).join('');
 }
