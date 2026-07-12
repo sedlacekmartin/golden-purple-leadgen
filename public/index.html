@@ -55,13 +55,6 @@
       <span class="sb-hide">Analytika</span>
     </button>
 
-    <button class="snav" onclick="exportCsv();closeSidebar()">
-      <span class="snav-icon" style="background:#eff6ff;color:#2563eb">
-        <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
-      </span>
-      <span class="sb-hide">Export CSV</span>
-    </button>
-
     <div class="my-2 border-t border-slate-100"></div>
 
     <a href="/settings" class="snav">
@@ -290,12 +283,16 @@
     <!-- ── MAIN ────────────────────────────────────────────────────────────── -->
     <section>
 
-      <!-- Pipeline tabs + bulk toggle -->
+      <!-- Pipeline tabs + bulk toggle + export -->
       <div class="flex items-center gap-3 mb-4 flex-wrap">
         <div id="tabs" class="flex gap-1 bg-slate-200/70 p-1 rounded-xl flex-wrap"></div>
         <button onclick="toggleSelectMode()" id="select-mode-btn"
           class="text-xs px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:border-purple-300 hover:text-purple-600 font-medium transition-colors">
           ☑ Vybrat
+        </button>
+        <button onclick="exportCsv()" title="Exportovat zobrazené leady do CSV"
+          class="text-xs px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-blue-300 hover:text-blue-600 font-medium transition-colors ml-auto">
+          ⬇ CSV
         </button>
       </div>
 
@@ -458,9 +455,11 @@
         <span class="text-sm text-slate-700">Nevhodná velikost firmy</span>
       </label>
       <label class="flex items-center gap-3 cursor-pointer p-2 rounded-xl hover:bg-slate-50 transition-colors">
-        <input type="checkbox" id="sr-jiny" class="accent-purple-600 w-4 h-4 shrink-0">
+        <input type="checkbox" id="sr-jiny" class="accent-purple-600 w-4 h-4 shrink-0" onchange="document.getElementById('sr-jiny-text').classList.toggle('hidden', !this.checked)">
         <span class="text-sm text-slate-700">Jiný důvod</span>
       </label>
+      <input id="sr-jiny-text" type="text" placeholder="Upřesni důvod…"
+        class="hidden w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 mt-1">
     </div>
     <div class="flex gap-2">
       <button onclick="confirmSkip()" class="btn-primary flex-1 py-2 text-sm">Přeskočit</button>
@@ -587,6 +586,7 @@ const TABS = [
   { key: 'replied',   label: 'Odpověděl',    badge: 'bg-teal-100 text-teal-600' },
   { key: 'meeting',   label: 'Schůzka',      badge: 'bg-indigo-100 text-indigo-600' },
   { key: 'closed',    label: 'Uzavřeno',     badge: 'bg-slate-200 text-slate-500' },
+  { key: 'skipped',   label: 'Přeskočené',   badge: 'bg-slate-100 text-slate-400' },
 ];
 
 let activeTab = 'pending';
@@ -594,6 +594,7 @@ let leadsByStatus = {};
 
 function getTabLeads(tab) {
   if (tab === 'closed') return [...(leadsByStatus.won || []), ...(leadsByStatus.lost || [])];
+  if (tab === 'skipped') return leadsByStatus.skipped || [];
   return leadsByStatus[tab] || [];
 }
 
@@ -729,6 +730,8 @@ function skip(id) {
     const el = document.getElementById(cbId);
     if (el) el.checked = false;
   });
+  const jinyText = document.getElementById('sr-jiny-text');
+  if (jinyText) { jinyText.value = ''; jinyText.classList.add('hidden'); }
   document.getElementById('skip-modal').classList.remove('hidden');
 }
 
@@ -743,7 +746,10 @@ async function confirmSkip() {
   if (document.getElementById('sr-obor').checked)     reasons.push('nesedí obor');
   if (document.getElementById('sr-lokalita').checked) reasons.push('špatná lokalita');
   if (document.getElementById('sr-velikost').checked) reasons.push('nevhodná velikost');
-  if (document.getElementById('sr-jiny').checked)     reasons.push('jiný důvod');
+  if (document.getElementById('sr-jiny').checked) {
+    const custom = document.getElementById('sr-jiny-text').value.trim();
+    reasons.push(custom || 'jiný důvod');
+  }
   const skip_reason = reasons.join(', ') || null;
 
   if (skipBulkIds.length > 0) {
@@ -1221,6 +1227,7 @@ const EMPTY_TEXT = {
   replied:   ['💬', 'Zatím žádná odpověď. Vydrž, ono to přijde!'],
   meeting:   ['🤝', 'Žádná domluvená schůzka.'],
   closed:    ['🏁', 'Žádné uzavřené obchody.'],
+  skipped:   ['🗑', 'Žádné přeskočené leady.'],
 };
 
 function followUpBadge(lead) {
@@ -1334,6 +1341,9 @@ function render() {
         ${lead.phone   ? `<span>📞 ${esc(lead.phone)}</span>` : ''}
         ${lead.website ? `<a href="${esc(lead.website)}" target="_blank" class="text-purple-500 hover:underline">🌐 ${esc(lead.website).replace(/^https?:\/\/(www\.)?/,'').slice(0,40)}</a>`
                        : `<span>🌐 Nemá web</span>`}
+        ${lead.offer_token ? `<a href="/nabidka/${esc(lead.offer_token)}" target="_blank"
+          class="text-amber-600 font-medium hover:underline ${lead.offer_clicked_at ? 'opacity-60' : ''}">
+          🎁 Nabídka${lead.offer_clicked_at ? ' ✓ kliknuto' : lead.offer_viewed_at ? ' 👁 zobrazeno' : ''}</a>` : ''}
       </div>
 
       <details class="card-sec bg-slate-50 rounded-xl mb-2" ${isPending ? 'open' : ''}>
