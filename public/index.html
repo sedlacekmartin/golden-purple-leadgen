@@ -150,15 +150,22 @@
         <input id="inp-location" type="text" placeholder="např. Třebíč" value="Třebíč"
           class="w-full bg-slate-50 rounded-lg px-3 py-2.5 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-purple-400 mb-3">
 
-        <div class="flex items-center justify-between mb-1">
-          <label class="text-xs text-gray-400 font-medium">Kategorie <span id="cat-count" class="text-purple-500 font-bold"></span></label>
-          <button onclick="toggleAllCategories()" id="btn-all-cats"
-            class="text-xs text-purple-500 hover:text-purple-700 font-medium transition-colors">Vše</button>
+        <!-- Web režim: kategorie chipy -->
+        <div id="search-web-ui">
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-xs text-gray-400 font-medium">Kategorie <span id="cat-count" class="text-purple-500 font-bold"></span></label>
+            <button onclick="toggleAllCategories()" id="btn-all-cats"
+              class="text-xs text-purple-500 hover:text-purple-700 font-medium transition-colors">Vše</button>
+          </div>
+          <div id="cat-chips" class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1 mb-3"></div>
         </div>
-        <div id="cat-chips" class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1 mb-3"></div>
 
-        <div id="icp-warn" class="hidden text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
-          ⚠️ AI režim: při více než 5 kategoriích doporučujeme max 10 výsledků, jinak může vyhledávání vypršet.
+        <!-- ICP/AI režim: volný dotaz -->
+        <div id="search-icp-ui" class="hidden">
+          <label class="text-xs text-gray-400 font-medium mb-1 block">Jaký typ firem hledáš?</label>
+          <input id="inp-icp-query" type="text" placeholder="např. výrobní firmy, strojírny, plastikárny"
+            class="w-full bg-slate-50 rounded-lg px-3 py-2.5 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-purple-400 mb-1">
+          <p class="text-xs text-gray-400 mb-3">Napiš obor nebo typ firem. AI pak posoudí, jak každá sedí na tvůj ICP.</p>
         </div>
 
         <label class="text-xs text-gray-400 font-medium mb-1 block">Počet výsledků (max 50)</label>
@@ -337,7 +344,7 @@ async function logout() {
 async function initWorkspace() {
   const { data } = await sb.from('workspaces').select('*').maybeSingle();
   workspace = data;
-  updateIcpWarn();
+  updateSearchUI();
   if (!workspace) {
     openWsModal(true); // onboarding — nejde zavřít
   } else {
@@ -406,7 +413,7 @@ async function saveWorkspace() {
       : await sb.from('workspaces').insert({ ...fields, owner: user.id }).select().single();
     if (error) throw error;
     workspace = data;
-    updateIcpWarn();
+    updateSearchUI();
     document.getElementById('header-company').textContent = workspace.company_name;
     closeWsModal();
     toast('Profil uložen ✓');
@@ -472,7 +479,9 @@ async function runSearch() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           location:   document.getElementById('inp-location').value.trim() || 'Třebíč',
-          categories: selectedCats.size ? [...selectedCats] : ['restaurace'],
+          categories: workspace?.scoring_mode === 'icp'
+            ? [(document.getElementById('inp-icp-query').value.trim() || 'firmy')]
+            : (selectedCats.size ? [...selectedCats] : ['restaurace']),
           limit:      parseInt(document.getElementById('inp-limit').value) || 10,
         }),
         signal: controller.signal,
@@ -972,20 +981,17 @@ function renderChips() {
 function toggleCat(cat) {
   if (selectedCats.has(cat)) { selectedCats.delete(cat); } else { selectedCats.add(cat); }
   renderChips();
-  updateIcpWarn();
 }
 
-function updateIcpWarn() {
-  const warn = document.getElementById('icp-warn');
-  if (!warn) return;
+function updateSearchUI() {
   const isIcp = workspace?.scoring_mode === 'icp';
-  warn.classList.toggle('hidden', !(isIcp && selectedCats.size > 5));
+  document.getElementById('search-web-ui').classList.toggle('hidden', isIcp);
+  document.getElementById('search-icp-ui').classList.toggle('hidden', !isIcp);
 }
 
 function toggleAllCategories() {
   if (ALL_CATS.every(c => selectedCats.has(c))) { selectedCats.clear(); } else { ALL_CATS.forEach(c => selectedCats.add(c)); }
   renderChips();
-  updateIcpWarn();
 }
 
 renderChips();
