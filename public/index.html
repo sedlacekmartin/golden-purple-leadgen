@@ -142,6 +142,10 @@
         <input id="f-draft" type="checkbox" onchange="resetPage();render()" class="accent-purple-600 w-3.5 h-3.5">
         <span class="text-xs text-gray-500">Jen s draftem</span>
       </label>
+      <label class="flex items-center gap-1.5 cursor-pointer select-none">
+        <input id="f-email" type="checkbox" onchange="resetPage();render()" class="accent-purple-600 w-3.5 h-3.5">
+        <span class="text-xs text-gray-500">Jen s e-mailem</span>
+      </label>
       <button onclick="clearFilters()" class="ml-auto text-xs text-gray-400 hover:text-gray-600 transition-colors">Zrušit filtry</button>
     </div>
     <div id="f-cats" class="flex flex-wrap gap-1.5"></div>
@@ -388,11 +392,13 @@ let activeCatFilter = new Set();
 function getFiltered() {
   const minScore = parseInt(document.getElementById('f-score')?.value) || 0;
   const onlyDraft = document.getElementById('f-draft')?.checked;
+  const onlyEmail = document.getElementById('f-email')?.checked;
   return [...leads[activeTab]]
     .filter(l => l.score >= minScore)
     .filter(l => !activeReasons.size || l.reasons?.some(r => activeReasons.has(r)))
     .filter(l => !activeCatFilter.size || activeCatFilter.has(l.category))
     .filter(l => !onlyDraft || !!l.email_draft)
+    .filter(l => !onlyEmail || !!l.email)
     .sort((a, b) => b.score - a.score);
 }
 
@@ -424,6 +430,7 @@ function clearFilters() {
   activeReasons.clear(); activeCatFilter.clear();
   document.getElementById('f-score').value = 0;
   document.getElementById('f-draft').checked = false;
+  document.getElementById('f-email').checked = false;
   resetPage(); render(); renderFilterUI();
 }
 
@@ -507,11 +514,21 @@ function render() {
         ${lead.reasons.map(r => `<span class="text-xs bg-purple-50 text-purple-600 px-2 py-0.5 rounded-full">${esc(r)}</span>`).join('')}
       </div>` : ''}
 
-      <div class="flex flex-wrap gap-3 text-xs text-gray-400 mb-3">
+      <div class="flex flex-wrap gap-3 text-xs text-gray-400 mb-2">
+        ${lead.email   ? `<a href="mailto:${esc(lead.email)}" class="text-purple-600 font-medium hover:underline">✉️ ${esc(lead.email)}</a>`
+                       : `<span class="text-gray-300">✉️ E-mail nenalezen</span>`}
         ${lead.phone   ? `<span>📞 ${esc(lead.phone)}</span>` : ''}
         ${lead.website ? `<a href="${esc(lead.website)}" target="_blank" class="text-purple-500 hover:underline">🌐 ${esc(lead.website)}</a>`
                        : `<span>🌐 Nemá web</span>`}
       </div>
+
+      ${(lead.ico || lead.founded || lead.employees || lead.legal_form) ? `
+      <div class="flex flex-wrap gap-1.5 mb-3">
+        ${lead.legal_form ? `<span class="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">${esc(lead.legal_form)}</span>` : ''}
+        ${lead.founded    ? `<span class="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">od ${esc(lead.founded.slice(0,4))}</span>` : ''}
+        ${lead.employees  ? `<span class="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">👥 ${esc(lead.employees)}</span>` : ''}
+        ${lead.ico        ? `<span class="text-xs bg-slate-100 text-slate-400 px-2 py-0.5 rounded-full">IČO ${esc(lead.ico)}</span>` : ''}
+      </div>` : '<div class="mb-1"></div>'}
 
       <div class="bg-slate-50 rounded-xl p-3 mb-3">
         <div class="flex items-center justify-between mb-1.5">

@@ -1,10 +1,13 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
+import { enrichCompany, mapConcurrent } from '../lib/enrich.js';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 
 const PLACES_KEY = process.env.GOOGLE_PLACES_API_KEY;
+
+export const config = { maxDuration: 60 };
 
 async function searchCompanies(location, category, limit) {
   const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
@@ -65,6 +68,14 @@ function scoreLead(company) {
 }
 
 async function draftEmail(company) {
+  const facts = [
+    `Firma: ${company.name} | ${company.location} | ${company.category}`,
+    `Má web: ${company.has_website}`,
+    company.founded ? `Založena: ${company.founded.slice(0, 4)}` : null,
+    company.employees ? `Zaměstnanců: ${company.employees}` : null,
+    company.legal_form ? `Právní forma: ${company.legal_form}` : null,
+  ].filter(Boolean).join('\n');
+
   const msg = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 400,
@@ -72,10 +83,9 @@ async function draftEmail(company) {
       role: 'user',
       content: `Jsi Martin z agentury Golden Purple (goldenpurple.cz).
 Napiš krátký, přirozený, neprodejný e-mail pro tuto firmu.
-Firma: ${company.name} | ${company.location} | ${company.category}
-Má web: ${company.has_website} | Stáří webu: ${company.website_age_years ?? 'N/A'} let
+${facts}
 Proč příležitost: ${company.reasons.join(', ')}
-Pravidla: max 5 vět, žádná klišé, konkrétní zmínka situace, CTA na call/reply, přímý lidský tón.
+Pravidla: max 5 vět, žádná klišé, konkrétní zmínka situace (klidně využij stáří firmy nebo velikost, pokud to zní přirozeně), CTA na call/reply, přímý lidský tón.
 Podpis: Martin / Golden Purple`,
     }],
   });
@@ -98,7 +108,8 @@ export default async function handler(req, res) {
     console.log('Companies found:', companies.length);
     const scored = companies.map(scoreLead);
 
-    const leads = [];
+    // 1) vyřaď duplicity
+    const fresh = [];
     for (const company of scored) {
       const { data: existing } = await supabase
         .from('leads')
@@ -107,8 +118,26 @@ export default async function handler(req, res) {
         .neq('status', 'skipped')
         .maybeSingle();
       if (existing) { console.log('Duplicate skip:', company.name); continue; }
+      fresh.push(company);
+    }
 
-      const draft = await draftEmail(company);
+    // 2) obohať: e-mail z webu + ARES (paralelně, max 5 najednou)
+    const enriched = await mapConcurrent(fresh, 5, enrichCompany);
+    console.log('Enriched:', enriched.filter(c => c.email).length, 'with email,',
+      enriched.filter(c => c.ico).length, 'with ARES data');
+
+    // 3) drafty paralelně
+    const withDrafts = await mapConcurrent(enriched, 5, async c => ({
+      ...c,
+      email_draft: await draftEmail(c).catch(err => {
+        console.error('Draft error:', c.name, err.message);
+        return null;
+      }),
+    }));
+
+    // 4) ulož
+    const leads = [];
+    for (const company of withDrafts) {
       const { data, error } = await supabase
         .from('leads')
         .insert({
@@ -117,9 +146,14 @@ export default async function handler(req, res) {
           category: company.category,
           website: company.website,
           phone: company.phone,
+          email: company.email,
+          ico: company.ico,
+          founded: company.founded,
+          legal_form: company.legal_form,
+          employees: company.employees,
           score: company.score,
           reasons: company.reasons,
-          email_draft: draft,
+          email_draft: company.email_draft,
           status: 'pending',
         })
         .select()
