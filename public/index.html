@@ -539,10 +539,12 @@ function openWsModal(onboarding = false) {
   }
   syncIcpVisibility();
   document.getElementById('ws-modal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
 }
 
 function closeWsModal() {
   document.getElementById('ws-modal').classList.add('hidden');
+  document.body.style.overflow = '';
 }
 
 function syncIcpVisibility() {
