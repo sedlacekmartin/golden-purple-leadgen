@@ -257,6 +257,26 @@
             </div>
           </div>
 
+          <div class="mb-4">
+            <label class="field-label field-label-accent mb-2">🏛 Rozhodovací proces</label>
+            <div class="space-y-2">
+              <input id="p-payer" type="text" placeholder="Kdo platí? např. majitel, finanční ředitel" class="field-input field-input-accent">
+              <input id="p-decider" type="text" placeholder="Kdo rozhoduje? např. jednatel, ředitel" class="field-input field-input-accent">
+              <input id="p-blocker" type="text" placeholder="Kdo nákup blokuje? např. šéfúčetní, IT manažer" class="field-input field-input-accent">
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="field-label field-label-accent mb-1">⚡ Buying trigger — kdy potřeba vzniká?</label>
+            <p class="text-xs text-purple-400 mb-2">Konkrétní situace nebo událost, po které zákazník začne hledat řešení.</p>
+            <textarea id="p-trigger" rows="2" placeholder="např. firma otevírá novou pobočku, přibývají zakázky a nemají kam je dát, konkurent spustil nový web..." class="field-input field-input-accent resize-none"></textarea>
+          </div>
+
+          <div class="mb-4">
+            <label class="field-label field-label-accent mb-1">🔥 Co musí nastat, aby se z toho stala priorita?</label>
+            <textarea id="p-priority" rows="2" placeholder="např. ztratili klíčového zákazníka, zahájili nábor, blíží se sezóna..." class="field-input field-input-accent resize-none"></textarea>
+          </div>
+
           <button type="button" onclick="generateIcpFromPersona()" id="persona-gen-btn"
             class="btn-primary w-full text-sm py-2.5 flex items-center justify-center gap-2">
             <span>🪄</span> Vygenerovat scoring popis z persony
@@ -270,6 +290,31 @@
         <textarea id="ws-icp" rows="4" placeholder="Vygeneruj popis z persony výše, nebo napiš ručně…"
           class="field-input resize-none"></textarea>
       </div>
+    </div>
+
+    <!-- Card: Messaging mapa -->
+    <div id="messaging" class="card card-pad mb-4 animate-fadeInUp-d3">
+      <p class="card-title">Messaging mapa</p>
+      <p class="card-desc">Jak má AI formulovat e-maily — jaký problém pojmenovat, jaký argument použít, co nabídnout jako první krok.</p>
+
+      <label class="field-label">Jaký problém pojmenováváme?</label>
+      <p class="text-xs text-slate-400 mb-2">Jak říkáme zákazníkovi, co ho trápí — jeho vlastními slovy.</p>
+      <textarea id="msg-problem" rows="2" placeholder="např. Firmy v oboru X přicházejí o zákazníky, protože zákazníci je online nenajdou a zavolají rovnou konkurenci..." class="field-input resize-none mb-4"></textarea>
+
+      <label class="field-label">Jaký důkaz / referenci používáme?</label>
+      <input id="msg-proof" type="text" placeholder="např. Pomohli jsme 3 firmám z Třebíče zdvojnásobit počet online poptávek do 60 dní" class="field-input mb-4">
+
+      <label class="field-label">Nejčastější námitka zákazníka (a jak ji vyvracíme)</label>
+      <input id="msg-objection" type="text" placeholder="např. 'Na web nemám čas' → vše vyřídíme za ně, potřebujeme jen 1 hodinu podkladů" class="field-input mb-4">
+
+      <label class="field-label">Typ CTA v e-mailech</label>
+      <select id="msg-cta" class="field-input">
+        <option value="konzultace">Bezplatná konzultace / nezávazný hovor</option>
+        <option value="demo">Demo ukázka / předvedení výsledků</option>
+        <option value="reply">Odpověď na e-mail — zájem ano/ne</option>
+        <option value="telefon">Telefonát — zavolám v konkrétní čas</option>
+        <option value="nabidka">Pošlu nezávaznou nabídku / kalkulaci</option>
+      </select>
     </div>
 
     <!-- Card: Integrace -->
@@ -386,6 +431,11 @@ function getPersonaFromForm() {
     pain3:    document.getElementById('p-pain3')?.value.trim() || '',
     goal1:    document.getElementById('p-goal1')?.value.trim() || '',
     goal2:    document.getElementById('p-goal2')?.value.trim() || '',
+    payer:    document.getElementById('p-payer')?.value.trim() || '',
+    decider:  document.getElementById('p-decider')?.value.trim() || '',
+    blocker:  document.getElementById('p-blocker')?.value.trim() || '',
+    trigger:  document.getElementById('p-trigger')?.value.trim() || '',
+    priority: document.getElementById('p-priority')?.value.trim() || '',
   };
 }
 
@@ -396,6 +446,8 @@ function fillPersonaForm(p) {
   set('p-size', p.size); set('p-industry', p.industry);
   set('p-pain1', p.pain1); set('p-pain2', p.pain2); set('p-pain3', p.pain3);
   set('p-goal1', p.goal1); set('p-goal2', p.goal2);
+  set('p-payer', p.payer); set('p-decider', p.decider); set('p-blocker', p.blocker);
+  set('p-trigger', p.trigger); set('p-priority', p.priority);
   updatePersonaAvatar();
 }
 
@@ -444,6 +496,13 @@ function fillForm() {
   if (modeEl) modeEl.checked = true;
   fillPersonaForm(workspace.persona);
   syncIcpVisibility();
+  if (workspace.messaging) {
+    const m = workspace.messaging;
+    document.getElementById('msg-problem').value   = m.problem   || '';
+    document.getElementById('msg-proof').value     = m.proof     || '';
+    document.getElementById('msg-objection').value = m.objection || '';
+    document.getElementById('msg-cta').value       = m.cta_type  || 'konzultace';
+  }
 }
 
 async function saveWorkspace() {
@@ -468,12 +527,19 @@ async function saveWorkspace() {
 
   const persona = getPersonaFromForm();
   const hasPersona = Object.values(persona).some(v => v);
+  const messaging = {
+    problem:   document.getElementById('msg-problem').value.trim() || null,
+    proof:     document.getElementById('msg-proof').value.trim() || null,
+    objection: document.getElementById('msg-objection').value.trim() || null,
+    cta_type:  document.getElementById('msg-cta').value,
+  };
   const fields = {
     company_name, sender_name, pitch, scoring_mode,
     icp: icp || null,
     website:     document.getElementById('ws-website').value.trim() || null,
     webhook_url: document.getElementById('ws-webhook').value.trim() || null,
     persona:     hasPersona ? persona : null,
+    messaging,
   };
 
   const btn = document.getElementById('ws-save');

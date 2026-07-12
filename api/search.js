@@ -125,29 +125,75 @@ Odpověz POUZE validním JSON polem: [{"i": 0, "score": 75, "reasons": ["...", "
   });
 }
 
+// ── Opening styly — generické, fungují pro jakýkoliv B2B byznys ──────────────
+
+const OPENING_STYLES = [
+  // 1 — Lokální průzkum
+  (c) => `Procházím firmy v ${c.location} v oboru ${c.category} a ${c.name} mi přišla jako zajímavá adresa — proto Vám píšu.`,
+  // 2 — Přímé B2B
+  (c) => `Hledám firmy v ${c.location} pro případnou spolupráci a ${c.name} mi přijde jako dobré spojení — dovolte, abych se představil.`,
+  // 4 — Kompliment + příležitost
+  (c) => `${c.google_rating && c.google_rating > 4 ? `Dobré hodnocení na Googlu — vidím, že ${c.name} má solidní základ.` : `Podíval jsem se na ${c.name} a myslím, že máte potenciál, který ještě není plně využitý.`} Proto Vám píšu.`,
+  // 6 — Zákaznický pohled
+  (c) => `Trochu jsem se podíval na ${c.name} v ${c.location} — a říkám si, že by stálo za to se Vám ozvat.`,
+  // 8 — Spolupráce v regionu
+  (c) => `Pracujeme s firmami v ${c.location} a ${c.name} mi přijde jako někdo, s kým by se dalo mluvit o spolupráci.`,
+  // 11 — Rozšiřuju klientskou základnu
+  (c) => `Rozšiřuji spolupráci s firmami v oboru ${c.category} v ${c.location} a připravil jsem pro Vás konkrétní nabídku.`,
+];
+
+function pickOpening(company) {
+  const style = OPENING_STYLES[Math.floor(Math.random() * OPENING_STYLES.length)];
+  return style(company);
+}
+
 // ── Draft e-mailu z profilu workspace ────────────────────────────────────────
 
 async function draftEmail(company, workspace) {
-  const facts = [
-    `Firma: ${company.name} | ${company.location} | ${company.category}`,
-    `Má web: ${company.has_website}`,
-    company.founded ? `Založena: ${company.founded.slice(0, 4)}` : null,
-    company.employees ? `Zaměstnanců: ${company.employees}` : null,
+  const opening = pickOpening(company);
+
+  const companyContext = [
+    company.founded ? `Firma existuje od ${company.founded.slice(0, 4)}` : null,
+    company.employees ? `Počet zaměstnanců: ${company.employees}` : null,
     company.legal_form ? `Právní forma: ${company.legal_form}` : null,
-  ].filter(Boolean).join('\n');
+    company.google_rating ? `Google hodnocení: ${company.google_rating} (${company.review_count} recenzí)` : null,
+  ].filter(Boolean).join(', ');
+
+  const m = workspace.messaging || {};
+  const ctaMap = {
+    konzultace: 'nezávazný hovor nebo bezplatnou konzultaci',
+    demo: 'krátkou demo ukázku výsledků',
+    reply: 'odpověď — zájem ano/ne',
+    telefon: 'telefonát v čas, který vám vyhovuje',
+    nabidka: 'nezávaznou nabídku',
+  };
+  const ctaPhrase = ctaMap[m.cta_type] || 'krátký hovor';
 
   const msg = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 400,
     messages: [{
       role: 'user',
-      content: `Jsi ${workspace.sender_name} z firmy ${workspace.company_name}${workspace.website ? ` (${workspace.website})` : ''}.
-Co nabízíš: ${workspace.pitch || 'služby pro firmy'}
-Napiš krátký, přirozený, neprodejný e-mail pro tuto firmu.
-${facts}
-Proč příležitost: ${company.reasons.join(', ')}
-Pravidla: max 5 vět, žádná klišé, konkrétní zmínka situace (klidně využij stáří firmy nebo velikost, pokud to zní přirozeně), CTA na call/reply, přímý lidský tón.
-Podpis: ${workspace.sender_name} / ${workspace.company_name}`,
+      content: `Napiš krátký B2B cold email v češtině. Přímo, bez klišé, lidsky.
+
+Odesílatel: ${workspace.sender_name}, firma ${workspace.company_name}${workspace.website ? ` (${workspace.website})` : ''}
+Co nabízí: ${workspace.pitch || 'služby pro firmy'}
+${m.problem ? `Problém, který pojmenováváme: ${m.problem}` : ''}
+${m.proof ? `Důkaz / reference: ${m.proof}` : ''}
+${m.objection ? `Nejčastější námitka a odpověď: ${m.objection}` : ''}
+
+Příjemce: ${company.name}, ${company.location}, obor: ${company.category}
+${companyContext ? `Kontext o firmě: ${companyContext}` : ''}
+${company.reasons?.length ? `Interní signál proč oslovit (NEPIŠ doslova, jen se tím inspiruj při volbě tónu): ${company.reasons.join(', ')}` : ''}
+
+Pravidla:
+- Začni PŘESNĚ tímto větou (nic před ní): "${opening}"
+- Celkem max 5 vět včetně úvodní
+- VŽDY vykat — žádné tykání, žádné neformální oslovení
+- Nikdy nepoužij slovo "problém" — místo toho "prostor pro zlepšení", "výzva" nebo "příležitost"
+- CTA: nabídni ${ctaPhrase}
+- Podpis: ${workspace.sender_name} / ${workspace.company_name}
+- Nepiš předmět emailu, jen tělo`,
     }],
   });
   return msg.content[0].text;

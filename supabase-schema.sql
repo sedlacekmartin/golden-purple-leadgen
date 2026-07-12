@@ -41,6 +41,9 @@ alter table leads add column if not exists followup_count int default 0;
 alter table leads add column if not exists followup_due_at timestamptz;
 alter table leads add column if not exists followup_draft text;
 
--- 5. PO PRVNÍ REGISTRACI (Golden Purple účet) si přiřaď stará data:
+-- 7. Messaging mapa (JSON: problem, proof, objection, cta_type)
+alter table workspaces add column if not exists messaging jsonb;
+
+-- 8. PO PRVNÍ REGISTRACI (Golden Purple účet) si přiřaď stará data:
 -- update leads set workspace_id = (select id from workspaces limit 1)
 --   where workspace_id is null;
