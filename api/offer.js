@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
-const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+// Service role key needed — anon key is blocked by RLS on leads table
+const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 export default async function handler(req, res) {
   const { token } = req.query;
