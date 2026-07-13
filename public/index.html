@@ -1297,6 +1297,7 @@ function scoreDisplay(lead) {
 }
 
 const draftTabs = {};
+
 function switchDraftTab(id, tab) {
   draftTabs[id] = tab;
   const ep = document.getElementById(`email-panel-${id}`);
@@ -1309,6 +1310,32 @@ function switchDraftTab(id, tab) {
   const off = 'text-xs px-2 py-0.5 rounded-md font-medium text-slate-400 hover:text-slate-600';
   if (et) et.className = tab === 'email' ? on : off;
   if (bt) bt.className = tab === 'brief' ? on : off;
+}
+
+async function loadCallBrief(id) {
+  switchDraftTab(id, 'brief');
+  const panel = document.getElementById(`brief-panel-${id}`);
+  if (!panel) return;
+  // Pokud je tam už obsah, jen zobrazíme
+  if (panel.dataset.loaded === '1') return;
+  panel.dataset.loaded = '1';
+  panel.innerHTML = '<span class="text-slate-400">Generuji call brief…</span>';
+  try {
+    const res = await authFetch('/api/call-brief', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Chyba');
+    panel.textContent = data.brief;
+    // Aktualizuj lead v paměti aby copyDraft fungoval
+    const lead = Object.values(leadsByStatus).flat().find(l => l.id === id);
+    if (lead) lead.call_brief = data.brief;
+  } catch(e) {
+    panel.innerHTML = `<span class="text-red-500 text-xs">Chyba: ${e.message}</span>`;
+    panel.dataset.loaded = '0';
+  }
 }
 
 function esc(str) {
@@ -1487,8 +1514,8 @@ function render() {
           <div class="flex items-center gap-1" onclick="event.preventDefault();event.stopPropagation()">
             <button id="tab-email-${lead.id}" onclick="switchDraftTab('${lead.id}','email')"
               class="text-xs px-2 py-0.5 rounded-md font-medium bg-purple-100 text-purple-700">📧 Email</button>
-            ${lead.call_brief ? `<button id="tab-brief-${lead.id}" onclick="switchDraftTab('${lead.id}','brief')"
-              class="text-xs px-2 py-0.5 rounded-md font-medium text-slate-400 hover:text-slate-600">📞 Brief</button>` : ''}
+            <button id="tab-brief-${lead.id}" onclick="loadCallBrief('${lead.id}')"
+              class="text-xs px-2 py-0.5 rounded-md font-medium text-slate-400 hover:text-slate-600">📞 Brief</button>
             ${isPending ? `<button id="edit-btn-${lead.id}" onclick="toggleEdit('${lead.id}')"
               class="text-xs text-purple-500 hover:text-purple-700 font-medium ml-1">Upravit</button>` : ''}
           </div>
@@ -1498,7 +1525,7 @@ function render() {
             <div id="view-${lead.id}" class="text-sm text-slate-600 whitespace-pre-line leading-relaxed">${esc(lead.email_draft)}</div>
             <textarea id="ta-${lead.id}" class="hidden w-full text-sm text-slate-700 bg-white border border-purple-200 rounded-lg p-2 mt-1 resize-none focus:outline-none focus:ring-2 focus:ring-purple-400 leading-relaxed" rows="7">${esc(lead.email_draft)}</textarea>
           </div>
-          ${lead.call_brief ? `<div id="brief-panel-${lead.id}" class="hidden text-sm text-slate-700 whitespace-pre-line leading-relaxed">${esc(lead.call_brief)}</div>` : ''}
+          <div id="brief-panel-${lead.id}" class="hidden text-sm text-slate-700 whitespace-pre-line leading-relaxed" ${lead.call_brief ? 'data-loaded="1"' : ''}>${lead.call_brief ? esc(lead.call_brief) : ''}</div>
         </div>
       </details>
 

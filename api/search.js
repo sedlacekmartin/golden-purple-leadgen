@@ -367,15 +367,14 @@ export default async function handler(req, res) {
       ? await scoreLeadsIcp(enriched, workspace, insights)
       : enriched.map(scoreLeadWeb);
 
-    // 5) drafty + call brief paralelně (token vygenerujeme předem, aby byl v emailu)
+    // 5) email drafty paralelně (call brief se generuje on-demand přes /api/call-brief)
     const scoredWithTokens = scored.map(c => ({ ...c, _offerToken: randomBytes(16).toString('hex') }));
-    const withDrafts = await mapConcurrent(scoredWithTokens, 3, async c => {
-      const [email_draft, call_brief] = await Promise.all([
-        draftEmail(c, workspace, insights, c._offerToken).catch(err => { console.error('Draft error:', c.name, err.message); return null; }),
-        draftCallBrief(c, workspace).catch(err => { console.error('Brief error:', c.name, err.message); return null; }),
-      ]);
-      return { ...c, email_draft, call_brief };
-    });
+    const withDrafts = await mapConcurrent(scoredWithTokens, 5, async c => ({
+      ...c,
+      email_draft: await draftEmail(c, workspace, insights, c._offerToken).catch(err => {
+        console.error('Draft error:', c.name, err.message); return null;
+      }),
+    }));
 
     // 5) ulož
     const leads = [];
@@ -399,7 +398,6 @@ export default async function handler(req, res) {
           score_detail: company.score_detail || null,
           buying_trigger: company.buying_trigger || null,
           email_draft: company.email_draft,
-          call_brief: company.call_brief || null,
           offer_token: company._offerToken || randomBytes(16).toString('hex'),
           status: 'pending',
         })
