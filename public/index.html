@@ -1275,9 +1275,10 @@ function clearFilters() {
 }
 
 function scoreBadge(score) {
-  if (score >= 60) return 'bg-red-100 text-red-700';
-  if (score >= 35) return 'bg-amber-100 text-amber-700';
-  return 'bg-green-100 text-green-700';
+  if (score >= 80) return 'bg-green-100 text-green-700';
+  if (score >= 60) return 'bg-teal-100 text-teal-700';
+  if (score >= 40) return 'bg-amber-100 text-amber-700';
+  return 'bg-slate-100 text-slate-500';
 }
 
 function esc(str) {
