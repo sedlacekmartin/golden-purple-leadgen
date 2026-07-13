@@ -108,11 +108,11 @@
 
     <!-- Page header -->
     <div class="flex items-center gap-3 mb-7 animate-fadeInUp">
-      <a href="/app" class="text-slate-400 hover:text-slate-700 transition-colors text-sm">← Leady</a>
+      <a href="/app" class="text-slate-400 hover:text-slate-700 transition-colors text-sm">← Příležitosti</a>
       <div class="w-px h-4 bg-slate-200"></div>
       <div>
         <h1 id="page-title" class="text-[22px] font-semibold tracking-tight text-slate-900">Nastavení firmy</h1>
-        <p class="text-[13px] text-slate-400 mt-0.5">Tyhle údaje řídí, jak agent píše e-maily a hodnotí leady.</p>
+        <p class="text-[13px] text-slate-400 mt-0.5">Tyhle údaje řídí, jak agent hodnotí příležitosti a připravuje podklady.</p>
       </div>
     </div>
 
@@ -207,13 +207,13 @@
               </select>
             </div>
             <div>
-              <label class="field-label field-label-accent">Věk</label>
-              <select id="p-age" class="field-input field-input-accent">
+              <label class="field-label field-label-accent">Seniorita</label>
+              <select id="p-seniority" class="field-input field-input-accent">
                 <option value="">— vyber —</option>
-                <option>25–35</option>
-                <option>35–45</option>
-                <option>45–55</option>
-                <option>55+</option>
+                <option>Majitel / jednatel (rozhoduje sám)</option>
+                <option>C-level (rozhoduje se souhlasem)</option>
+                <option>Střední management (navrhuje, neschvaluje)</option>
+                <option>Specialista (vliv, ne rozhodnutí)</option>
               </select>
             </div>
             <div>
@@ -231,6 +231,19 @@
               <input id="p-industry" type="text" placeholder="např. strojírenství, IT, stavebnictví"
                 class="field-input field-input-accent">
             </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="field-label field-label-accent">Co řeší primárně</label>
+            <select id="p-priority-focus" class="field-input field-input-accent">
+              <option value="">— vyber —</option>
+              <option>Cenu / úsporu nákladů</option>
+              <option>Rychlost / dodací lhůty</option>
+              <option>Bezpečnost / spolehlivost</option>
+              <option>Výsledek / obchodní dopad</option>
+              <option>Kvalitu / prestiž</option>
+              <option>Jednoduchost / bezstarostnost</option>
+            </select>
           </div>
 
           <div class="mb-4">
@@ -462,10 +475,11 @@ document.addEventListener('change', e => { if (e.target.id === 'p-role') updateP
 
 function getPersonaFromForm() {
   return {
-    name:     document.getElementById('p-name')?.value.trim() || '',
-    role:     document.getElementById('p-role')?.value || '',
-    age:      document.getElementById('p-age')?.value || '',
-    size:     document.getElementById('p-size')?.value || '',
+    name:           document.getElementById('p-name')?.value.trim() || '',
+    role:           document.getElementById('p-role')?.value || '',
+    seniority:      document.getElementById('p-seniority')?.value || '',
+    priority_focus: document.getElementById('p-priority-focus')?.value || '',
+    size:           document.getElementById('p-size')?.value || '',
     industry: document.getElementById('p-industry')?.value.trim() || '',
     pain1:    document.getElementById('p-pain1')?.value.trim() || '',
     pain2:    document.getElementById('p-pain2')?.value.trim() || '',
@@ -483,7 +497,8 @@ function getPersonaFromForm() {
 function fillPersonaForm(p) {
   if (!p) return;
   const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
-  set('p-name', p.name); set('p-role', p.role); set('p-age', p.age);
+  set('p-name', p.name); set('p-role', p.role);
+  set('p-seniority', p.seniority); set('p-priority-focus', p.priority_focus);
   set('p-size', p.size); set('p-industry', p.industry);
   set('p-pain1', p.pain1); set('p-pain2', p.pain2); set('p-pain3', p.pain3);
   set('p-goal1', p.goal1); set('p-goal2', p.goal2);

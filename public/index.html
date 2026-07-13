@@ -45,7 +45,7 @@
       <span class="snav-icon" style="background:#fef3c7;color:#b45309">
         <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/></svg>
       </span>
-      <span class="sb-hide">Leady</span>
+      <span class="sb-hide">Příležitosti</span>
     </button>
 
     <div class="my-2 border-t border-slate-100"></div>
@@ -139,7 +139,7 @@
   <!-- Page header (desktop only) -->
   <div class="hidden md:flex items-start justify-between gap-4 mb-6 animate-fadeInUp">
     <div>
-      <h1 id="page-title" class="text-[24px] font-semibold tracking-tight text-slate-900">Leady</h1>
+      <h1 id="page-title" class="text-[24px] font-semibold tracking-tight text-slate-900">Příležitosti</h1>
       <p id="page-date" class="mt-0.5 text-[13px] text-slate-400 capitalize"></p>
     </div>
     <button id="page-refresh" onclick="loadLeads()" title="Obnovit"
@@ -221,7 +221,7 @@
         <button id="search-btn" onclick="runSearch()"
           class="btn-primary w-full px-5 py-2.5 text-sm flex items-center gap-2 justify-center">
           <span id="search-spinner" class="hidden w-4 h-4 border-2 border-white/30 border-t-white rounded-full spin"></span>
-          <span id="search-label">🔍 Hledat leady</span>
+          <span id="search-label">🔍 Najít příležitosti</span>
         </button>
 
         <div class="mt-3 text-xs text-slate-400 space-y-0.5" id="cost-estimate"></div>
@@ -625,9 +625,9 @@ async function initWorkspace() {
 // ── Pipeline ──────────────────────────────────────────────────────────────────
 
 const TABS = [
-  { key: 'pending',   label: 'Ke schválení', badge: 'bg-purple-100 text-purple-600' },
-  { key: 'approved',  label: 'Schválené',    badge: 'bg-blue-100 text-blue-600' },
-  { key: 'contacted', label: 'Osloveno',     badge: 'bg-amber-100 text-amber-600' },
+  { key: 'pending',   label: 'Nové nálezy',   badge: 'bg-purple-100 text-purple-600' },
+  { key: 'approved',  label: 'Kvalifikované', badge: 'bg-blue-100 text-blue-600' },
+  { key: 'contacted', label: 'Kontaktováno',  badge: 'bg-amber-100 text-amber-600' },
   { key: 'replied',   label: 'Odpověděl',    badge: 'bg-teal-100 text-teal-600' },
   { key: 'meeting',   label: 'Schůzka',      badge: 'bg-indigo-100 text-indigo-600' },
   { key: 'closed',    label: 'Uzavřeno',     badge: 'bg-slate-200 text-slate-500' },
@@ -693,7 +693,7 @@ async function runSearch() {
     }
     if (!res.ok) throw new Error(typeof data.error === 'string' ? data.error : 'Chyba serveru (' + res.status + ')');
     const count = data.leads?.length ?? 0;
-    toast(count > 0 ? `Nalezeno ${count} nových leadů` : 'Žádné nové leady — firmy už jsou v databázi nebo nebyly nalezeny');
+    toast(count > 0 ? `Nalezeno ${count} nových příležitostí` : 'Žádné nové příležitosti — firmy už jsou v databázi nebo nebyly nalezeny');
     if (count > 0) updateCostEstimate(count);
     await loadLeads();
   } catch(e) {
@@ -701,7 +701,7 @@ async function runSearch() {
   } finally {
     btn.disabled = false;
     spinner.classList.add('hidden');
-    label.textContent = '🔍 Hledat leady';
+    label.textContent = '🔍 Najít příležitosti';
   }
 }
 
@@ -891,7 +891,7 @@ function saveFollowUp(id, value) {
 
 function exportCsv() {
   const list = getFiltered();
-  if (!list.length) { toast('Žádné leady k exportu', true); return; }
+  if (!list.length) { toast('Žádné příležitosti k exportu', true); return; }
   const cols = ['company','category','location','email','phone','website','ico','legal_form','founded','employees','score','reasons','status','follow_up','notes','email_draft'];
   const head = ['Firma','Kategorie','Lokalita','E-mail','Telefon','Web','IČO','Právní forma','Založena','Zaměstnanců','Skóre','Důvody','Stav','Follow-up','Poznámky','Draft'];
   const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
@@ -900,7 +900,7 @@ function exportCsv() {
   const csv = '﻿' + head.map(q).join(';') + '\n' + rows.join('\n');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-  a.download = `leady-${activeTab}-${new Date().toISOString().slice(0,10)}.csv`;
+  a.download = `prilezitosti-${activeTab}-${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
   URL.revokeObjectURL(a.href);
   toast(`Exportováno ${list.length} leadů ⬇`);
@@ -1033,8 +1033,8 @@ function renderStats() {
       <div class="text-[13px] font-medium text-slate-700 mt-0.5">${label}</div>
     </div>`;
   document.getElementById('stats').innerHTML =
-    stat('Leadů celkem', all.length) +
-    stat('Ke schválení', count('pending'), 'text-purple-700') +
+    stat('Příležitostí celkem', all.length) +
+    stat('Nové nálezy', count('pending'), 'text-purple-700') +
     stat('Osloveno', contacted, 'text-amber-500') +
     stat('Odpovědělo', replied, 'text-teal-600') +
     stat('Úspěšnost odpovědí', rate === null ? '—' : rate + ' %', 'text-teal-600') +
@@ -1046,8 +1046,8 @@ function renderStats() {
 function renderFunnel(count, all) {
   // Funnel stages
   const stages = [
-    { key: 'pending',   label: 'Ke schválení', color: 'bg-purple-500' },
-    { key: 'approved',  label: 'Schválené',    color: 'bg-blue-500'   },
+    { key: 'pending',   label: 'Nové nálezy',   color: 'bg-purple-500' },
+    { key: 'approved',  label: 'Kvalifikované', color: 'bg-blue-500'   },
     { key: 'contacted', label: 'Osloveno',     color: 'bg-amber-500'  },
     { key: 'replied',   label: 'Odpovědělo',   color: 'bg-teal-500'   },
     { key: 'meeting',   label: 'Schůzka',      color: 'bg-indigo-500' },
@@ -1320,9 +1320,9 @@ function renderPagination(total) {
 // ── Render ────────────────────────────────────────────────────────────────────
 
 const EMPTY_TEXT = {
-  pending:   ['🔍', 'Zadej parametry vlevo a klikni Hledat leady.'],
-  approved:  ['📭', 'Žádné schválené leady — schval něco v prvním tabu.'],
-  contacted: ['📨', 'Zatím jsi nikoho neoslovil. Schválený lead označ „Osloveno".'],
+  pending:   ['🔍', 'Zadej parametry vlevo a klikni Najít příležitosti.'],
+  approved:  ['📭', 'Žádné kvalifikované příležitosti — kvalifikuj něco v prvním tabu.'],
+  contacted: ['📨', 'Zatím jsi nikoho nekontaktoval. Kvalifikovanou příležitost označ „Kontaktováno".'],
   replied:   ['💬', 'Zatím žádná odpověď. Vydrž, ono to přijde!'],
   meeting:   ['🤝', 'Žádná domluvená schůzka.'],
   closed:    ['🏁', 'Žádné uzavřené obchody.'],
@@ -1358,7 +1358,7 @@ function actionButtons(lead) {
       <button onclick="markContacted('${lead.id}')" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white py-2 rounded-xl text-sm font-semibold transition-colors">📨 Osloveno</button>
       ${copyBtn}
       ${offerBtn}
-      <button onclick="moveTo('${lead.id}','pending','Vráceno ke schválení')" class="border border-slate-200 hover:bg-red-50 hover:text-red-400 text-slate-400 px-3 py-2 rounded-xl text-sm transition-colors">Vrátit</button>`;
+      <button onclick="moveTo('${lead.id}','pending','Vráceno mezi nové nálezy')" class="border border-slate-200 hover:bg-red-50 hover:text-red-400 text-slate-400 px-3 py-2 rounded-xl text-sm transition-colors">Vrátit</button>`;
     case 'contacted': {
       const fuDue = lead.followup_due_at && new Date(lead.followup_due_at) <= new Date();
       const fuReady = !!lead.followup_draft;
@@ -1631,7 +1631,7 @@ function showView(name) {
 // ── Admin data ────────────────────────────────────────────────────────────────
 
 const ADMIN_STATUS_LABELS = {
-  pending: 'Ke schválení', approved: 'Schválené', contacted: 'Osloveno',
+  pending: 'Nové nálezy', approved: 'Kvalifikované', contacted: 'Kontaktováno',
   replied: 'Odpovědělo', meeting: 'Schůzka', won: 'Vyhráno', lost: 'Prohráno', skipped: 'Přeskočeno',
 };
 
