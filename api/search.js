@@ -137,10 +137,13 @@ async function scoreLeadsIcp(companies, workspace, insights) {
   const personaContext = p ? `
 Persona ideálního zákazníka:
 - Jméno/typ: ${p.name || ''}
-- Role: ${p.role || ''}, věk: ${p.age || ''}
+- Role: ${p.role || ''}${p.seniority ? `, seniorita: ${p.seniority}` : ''}
+${p.priority_focus ? `- Co primárně řeší: ${p.priority_focus}` : ''}
 - Firma: ${p.size || ''}, obor: ${p.industry || ''}
 - Problémy: ${[p.pain1, p.pain2, p.pain3].filter(Boolean).join('; ')}
-- Cíle: ${[p.goal1, p.goal2].filter(Boolean).join('; ')}` : '';
+- Cíle: ${[p.goal1, p.goal2].filter(Boolean).join('; ')}
+${p.payer ? `- Kdo platí: ${p.payer}` : ''}${p.decider ? `, kdo rozhoduje: ${p.decider}` : ''}
+${p.blocker ? `- Kdo nákup blokuje: ${p.blocker}` : ''}` : '';
 
   const msg = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
@@ -153,13 +156,19 @@ Ideální zákazník (scoring popis): ${workspace.icp}
 ${personaContext}
 ${formatInsights(insights)}
 
-Ohodnoť každou firmu skóre 0–100 podle shody s ideálním zákazníkem a personou.
+Ohodnoť každou firmu podle shody s ideálním zákazníkem. Pro každou firmu vrať:
+- icp: 0–10 (jak moc firma sedí na personu a ICP — obor, lokalita, velikost)
+- opportunity: 0–10 (jak silná je obchodní příležitost — pravděpodobná potřeba, potenciál)
+- timing: 0–10 (signály že potřeba je právě teď — expanze, nábor, nová hala, problém)
+- total: 0–100 (celkové skóre — váž všechny tři složky, nemusí být prostý průměr)
+- trigger: stručný český text (1 věta) popisující konkrétní signál nebo důvod proč oslovit PRÁVĚ TEĎ — nebo null pokud žádný signál není
+- reasons: max 3 krátké konkrétní důvody česky (proč sedí nebo nesedí)
 ${insights ? 'Zohledni historický kontext — kategorie s vyšším approval rate jsou pravděpodobně lepší shoda.' : ''}
-Uveď max 3 krátké konkrétní důvody česky (proč sedí nebo nesedí).
 
 Firmy: ${JSON.stringify(list)}
 
-Odpověz POUZE validním JSON polem: [{"i": 0, "score": 75, "reasons": ["...", "..."]}, ...]`,
+Odpověz POUZE validním JSON polem:
+[{"i": 0, "icp": 8, "opportunity": 6, "timing": 4, "total": 72, "trigger": "Firma nabírá nové zaměstnance a rozšiřuje výrobu", "reasons": ["...", "..."]}, ...]`,
     }],
   });
 
@@ -169,12 +178,18 @@ Odpověz POUZE validním JSON polem: [{"i": 0, "score": 75, "reasons": ["...", "
     scores = JSON.parse(text);
   } catch (e) {
     console.error('ICP scoring parse error:', e.message);
-    return companies.map(c => ({ ...c, score: 50, reasons: ['AI scoring selhal — výchozí skóre'] }));
+    return companies.map(c => ({ ...c, score: 50, reasons: ['AI scoring selhal — výchozí skóre'], score_detail: null, buying_trigger: null }));
   }
 
   return companies.map((c, idx) => {
     const s = scores.find(x => x.i === idx);
-    return { ...c, score: s?.score ?? 50, reasons: s?.reasons ?? [] };
+    return {
+      ...c,
+      score:          s?.total ?? 50,
+      reasons:        s?.reasons ?? [],
+      score_detail:   s ? { icp: s.icp ?? 5, opportunity: s.opportunity ?? 5, timing: s.timing ?? 5 } : null,
+      buying_trigger: s?.trigger || null,
+    };
   });
 }
 
@@ -263,6 +278,44 @@ ${offerUrl ? `- Na konec emailu přidej řádek: "Připravil jsem pro Vás osobn
   return msg.content[0].text;
 }
 
+// ── Call brief ───────────────────────────────────────────────────────────────
+
+async function draftCallBrief(company, workspace) {
+  const m = workspace.messaging || {};
+  const p = workspace.persona || {};
+
+  const msg = await anthropic.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 500,
+    messages: [{
+      role: 'user',
+      content: `Připrav stručný call brief pro B2B telefonát v češtině. Formálně, výhradně vykat.
+
+Odesílatel: ${workspace.sender_name}, firma ${workspace.company_name}
+Co nabízí: ${workspace.pitch || 'B2B služby'}
+${m.problem ? `Problém zákazníka: ${m.problem}` : ''}
+${p.role ? `Cílová osoba: ${p.role}` : ''}${p.seniority ? `, ${p.seniority}` : ''}
+${p.priority_focus ? `Co zákazník primárně řeší: ${p.priority_focus}` : ''}
+${p.blocker ? `Kdo nákup blokuje: ${p.blocker}` : ''}
+${p.trigger ? `Kdy potřeba vzniká: ${p.trigger}` : ''}
+${company.buying_trigger ? `Detekovaný signál u této firmy: ${company.buying_trigger}` : ''}
+
+Volaná firma: ${company.name}, ${company.location}, obor: ${company.category}
+${company.employees ? `Zaměstnanců: ${company.employees}` : ''}
+
+Formát výstupu — přesně dodržuj tyto sekce, nic nepřidávej:
+ÚVOD: [Jedna konkrétní věta — jak se představíš a proč voláš. Vykat.]
+OTÁZKY:
+• [otázka 1 — zjistit situaci nebo potřebu]
+• [otázka 2 — zjistit rozhodovatele nebo timing]
+NÁMITKA: [nejpravděpodobnější námitka]
+ODPOVĚĎ: [stručná odpověď na námitku]
+CÍL HOVORU: [co chceš od hovoru odejít — max 1 věta]`,
+    }],
+  });
+  return msg.content[0].text.trim();
+}
+
 // ── Handler ──────────────────────────────────────────────────────────────────
 
 export default async function handler(req, res) {
@@ -314,15 +367,15 @@ export default async function handler(req, res) {
       ? await scoreLeadsIcp(enriched, workspace, insights)
       : enriched.map(scoreLeadWeb);
 
-    // 5) drafty paralelně (token vygenerujeme předem, aby byl v emailu)
+    // 5) drafty + call brief paralelně (token vygenerujeme předem, aby byl v emailu)
     const scoredWithTokens = scored.map(c => ({ ...c, _offerToken: randomBytes(16).toString('hex') }));
-    const withDrafts = await mapConcurrent(scoredWithTokens, 5, async c => ({
-      ...c,
-      email_draft: await draftEmail(c, workspace, insights, c._offerToken).catch(err => {
-        console.error('Draft error:', c.name, err.message);
-        return null;
-      }),
-    }));
+    const withDrafts = await mapConcurrent(scoredWithTokens, 3, async c => {
+      const [email_draft, call_brief] = await Promise.all([
+        draftEmail(c, workspace, insights, c._offerToken).catch(err => { console.error('Draft error:', c.name, err.message); return null; }),
+        draftCallBrief(c, workspace).catch(err => { console.error('Brief error:', c.name, err.message); return null; }),
+      ]);
+      return { ...c, email_draft, call_brief };
+    });
 
     // 5) ulož
     const leads = [];
@@ -343,7 +396,10 @@ export default async function handler(req, res) {
           employees: company.employees,
           score: company.score,
           reasons: company.reasons,
+          score_detail: company.score_detail || null,
+          buying_trigger: company.buying_trigger || null,
           email_draft: company.email_draft,
+          call_brief: company.call_brief || null,
           offer_token: company._offerToken || randomBytes(16).toString('hex'),
           status: 'pending',
         })

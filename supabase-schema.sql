@@ -58,6 +58,11 @@ alter table workspaces add column if not exists offer jsonb;
 
 -- 12. Per-lead přepis nabídky (přebíjí workspace.offer pro konkrétní firmu)
 alter table leads add column if not exists lead_offer jsonb;
+
+-- 13. Fáze 2 — vícerozměrné skóre + buying trigger + call brief
+alter table leads add column if not exists score_detail jsonb;   -- { icp: 0-10, opportunity: 0-10, timing: 0-10 }
+alter table leads add column if not exists buying_trigger text;  -- detekovaný signál od Claude (expanze, nábor apod.)
+alter table leads add column if not exists call_brief text;      -- telefonní brief vygenerovaný AI
 -- Struktura stejná jako workspace.offer, jen pole která chceš přepsat (ostatní se vezmou z workspace.offer)
 
 -- 8. PO PRVNÍ REGISTRACI (Golden Purple účet) si přiřaď stará data:
